@@ -1,0 +1,17 @@
+# Debils config file
+
+# Which directories to build
+ROOT_TOP	:=src glfw cglm
+
+# Build profile
+# Options: gcc, default, custom
+BS_PROFILE	:=gcc
+
+# Disable sexy build by default
+NOSTYLE		:=y
+DEBUG		:=n
+
+# Use those, when choosing "custom" build profile.
+CC	?=
+AS	?=
+LD	?=

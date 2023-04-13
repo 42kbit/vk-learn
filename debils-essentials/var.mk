@@ -1,0 +1,21 @@
+
+include $(BSE_PROFILE_DIR)/$(BS_PROFILE).mk
+
+# VARIABLES AND DEFINES
+# CFLAGS
+
+CF_ALL	:=-Wall -Wextra
+ASF_ALL	:=-Wall -Wextra
+
+OPTLVL	?=-O2
+
+ifeq ($(DEBUG),n)
+CF_ALL	+=$(OPTLVL)
+ASF_ALL	+=$(OPTLVL)
+else
+CF_ALL	+=$(OPTLVL) $(CC_DEBUG_FLAGS)
+ASF_ALL	+=$(OPTLVL) $(CC_DEBUG_FLAGS)
+endif
+
+# LINK FLAGS
+LF_ALL	:=

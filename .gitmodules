@@ -1,0 +1,6 @@
+[submodule "modules/glfw/glfw"]
+	path = modules/glfw/glfw
+	url = git@github.com:glfw/glfw.git
+[submodule "modules/cglm/cglm"]
+	path = modules/cglm/cglm
+	url = git@github.com:recp/cglm.git

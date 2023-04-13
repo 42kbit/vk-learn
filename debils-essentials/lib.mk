@@ -79,4 +79,3 @@ endef
 dirguard=@mkdir -p $(@D)
 
 append =$(eval $(1):=$($(1)) $(2))
-

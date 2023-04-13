@@ -1,7 +1,7 @@
 # Debils config file
 
 # Which directories to build
-ROOT_TOP	:=src glfw cglm
+ROOT_TOP	:=modules src
 
 # Build profile
 # Options: gcc, default, custom

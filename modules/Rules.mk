@@ -1,1 +1,1 @@
-# SUBDIRS_$(d)	:=glfw cglm
+SUBDIRS_$(d)	:=glfw cglm

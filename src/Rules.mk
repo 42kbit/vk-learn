@@ -1,1 +1,1 @@
-SUBDIRS_$(d)	:=0_init
+SUBDIRS_$(d)	:=0_init 1_vk

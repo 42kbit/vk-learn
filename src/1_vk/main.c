@@ -52,7 +52,7 @@ int main(void)
 	const char** glfw_extensions = NULL;
 	glfw_extensions = glfwGetRequiredInstanceExtensions (&glfw_extensions_count);
 	printf ("Listing %d glfw extensions: \n", glfw_extensions_count);
-	for (uint32_t i = 0; i < glfw_extensions_count; i++) {
+	for (int i = 0; i < glfw_extensions_count; i++) {
 		printf ("[%2d] %s\n", i, glfw_extensions[i]);
 	}
 

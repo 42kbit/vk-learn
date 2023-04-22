@@ -14,7 +14,7 @@ CGLM_CMAKE_LIB	:=$(CGLM_CMAKE_DIR)/src
 CGLM_INCLUDE_DIR	:=$(CGLM_DIR)/include
 
 TGTS_$(d)	:=$(CGLM_LIB)
-$(call append, TGT_LIB, $(TGTS_$(d)))
+TGT_LIB		:=$(TGT_LIB) $(TGTS_$(d))
 
 $(d): $(TGTS_$(d))
 $(TGTS_$(d)):

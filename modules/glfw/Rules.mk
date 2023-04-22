@@ -14,7 +14,7 @@ GLFW_CMAKE_LIB	:=$(GLFW_CMAKE_DIR)/src
 GLFW_INCLUDE_DIR	:=$(GLFW_DIR)/include
 
 TGTS_$(d)	:=$(GLFW_LIB)
-$(call append, TGT_LIB, $(TGTS_$(d)))
+TGT_LIB		:=$(TGT_LIB) $(TGTS_$(d))
 
 $(d): $(TGTS_$(d))
 $(TGTS_$(d)):

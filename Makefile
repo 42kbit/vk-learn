@@ -83,7 +83,6 @@ $(foreach val,$(SUBDIRS),\
 	$(rend))
 
 $(OBJS_TOTAL): $(CFG_FILE)
-$(info $(OBJS_TOTAL))
 
 $(DIR_OBJS)/%.o: %.c
 	$(dirguard)

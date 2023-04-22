@@ -4,3 +4,6 @@
 [submodule "modules/cglm/cglm"]
 	path = modules/cglm/cglm
 	url = git@github.com:recp/cglm.git
+[submodule "modules/glib/glib"]
+	path = modules/glib/glib
+	url = git@github.com:GNOME/glib.git

@@ -3,7 +3,7 @@ COBJS_$(d)	:=$(od)/main.o
 
 TGTS_$(d)	:=$(bd)/main
 
-$(call append, TGT_BIN, $(TGTS_$(d)))
+TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))
 
 OBJS_$(d)	:=$(ASMOBJS_$(d)) $(COBJS_$(d))
 
@@ -20,6 +20,9 @@ LF_$(TGTS_$(d))		:=		\
 		-lcglm			\
 		-lvulkan
 
+
+$(COBJS_$(d)): $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB)
+
 $(d): $(TGTS_$(d))
-$(TGTS_$(d)): $(GLFW_LIB) $(OBJS_$(d))
+$(TGTS_$(d)): $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB) $(OBJS_$(d))
 	$(L_LINK)

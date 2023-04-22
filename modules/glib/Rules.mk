@@ -1,4 +1,4 @@
-# This should build glfw
+# This should build glib
 
 # OS Dependent
 

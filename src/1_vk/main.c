@@ -11,10 +11,44 @@
 
 #include <glib.h>
 
-int main(void)
+#include <vk-learn/common.h>
+
+static inline GArray*
+get_vlayers (void)
+{
+	GArray* vlayers;
+	uint32_t vlayers_cnt;
+	/* Assume vkEnumerateInstanceLayerProperties does throw VK_SUCCESS */
+	vkEnumerateInstanceLayerProperties (&vlayers_cnt, NULL);
+	vlayers = g_array_sized_new (FALSE, FALSE, sizeof (VkLayerProperties), vlayers_cnt);
+	vkEnumerateInstanceLayerProperties (&vlayers_cnt, (VkLayerProperties*)vlayers->data);
+	g_array_set_size (vlayers, vlayers_cnt);
+	return vlayers;
+}
+
+struct app {
+	GLFWwindow *glfw_window;
+	GArray *vlayers;
+};
+
+static inline void
+init_app (struct app* p)
+{
+	p->vlayers = get_vlayers ();
+}
+
+static inline void
+term_app (struct app* p)
+{
+	g_array_free (p->vlayers, TRUE);
+}
+
+int
+main(void)
 {
 	GLFWwindow* window;
-	
+	struct app app;
+
 	/* Initialize the library */
 	if (!glfwInit())
 		return -1;
@@ -22,19 +56,14 @@ int main(void)
 	glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint (GLFW_RESIZABLE,  GLFW_FALSE);
 
-	window = glfwCreateWindow(640, 480, "Hello Vulkan!", NULL, NULL);
+	window = glfwCreateWindow (640, 480, "Hello Vulkan!", NULL, NULL);
 	if (window == NULL) {
-		glfwTerminate();
+		glfwTerminate ();
 		return -1;
 	}
 	
 	/* Make the window's context current */
-	glfwMakeContextCurrent(window);
-
-	/* Test glm */
-	mat4 mat = GLM_MAT4_IDENTITY_INIT;
-	vec4 vec = GLM_VEC4_ZERO_INIT;
-	glm_mat4_mulv (mat, vec, vec);
+	glfwMakeContextCurrent (window);
 
 	uint32_t ext_count;
 	vkEnumerateInstanceExtensionProperties (NULL, &ext_count, NULL);
@@ -48,7 +77,6 @@ int main(void)
 		.engineVersion = VK_MAKE_VERSION (1, 0, 0),
 		.apiVersion = VK_API_VERSION_1_0
 	};
-
 
 	uint32_t glfw_extensions_count = 0;
 	const char** glfw_extensions = NULL;
@@ -72,19 +100,27 @@ int main(void)
 		perror ("vkCreateInstance failed\n");
 		goto exit;
 	}
-
-	/* Loop until the user closes the window */
-	while (!glfwWindowShouldClose(window))
-	{
-		/* Swap front and back buffers */
-		glfwSwapBuffers(window);
-
-		/* Poll for and process events */
-		glfwPollEvents();
+	init_app (&app);
+	
+	printf ("Listing avaliable %d layers:\n", app.vlayers->len);
+	for (guint i = 0; i < app.vlayers->len; i++) {
+		VkLayerProperties* layer = &g_array_index (app.vlayers, VkLayerProperties, i);
+		printf ("[%2d] %s\n", i, layer->layerName);
 	}
 	
+	/* Loop until the user closes the window */
+	while (!glfwWindowShouldClose (window))
+	{
+		/* Swap front and back buffers */
+		glfwSwapBuffers (window);
+
+		/* Poll for and process events */
+		glfwPollEvents ();
+	}
+	
+	term_app (&app);
 	vkDestroyInstance (vk_instance, NULL);
 exit:
-	glfwTerminate();
+	glfwTerminate ();
 	return 0;
 }

@@ -11,6 +11,7 @@ CF_$(d)		:=			\
 		$(CF_$(d))		\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
+		-I$(INCLUDE_TOP)	\
 		-I$(GLIB_INCLUDE_DIR)
 
 LF_$(TGTS_$(d))		:=		\

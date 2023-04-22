@@ -1,0 +1,6 @@
+#ifndef __H_SRC_INCLUDE_COMMON_H
+#define __H_SRC_INCLUDE_COMMON_H
+
+
+
+#endif /* __H_SRC_INCLUDE_COMMON_H */

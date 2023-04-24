@@ -3,12 +3,15 @@
 #include <cglm/vec4.h>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vk_validation_error_messages.h>
 
 #include <glib.h>
 
 #include <vk-learn/common.h>
 
-#define __VK_VLAYERS_NEEDED 1
+#ifdef DEBUG
+ #define __VK_VLAYERS_NEEDED 1
+#endif
 
 struct vkapp __vkapp; /* Shall not be accessed directly */
 const char* vkapp_required_vlayers[] = {
@@ -37,15 +40,18 @@ struct vkapp {
 };
 
 static inline void
-init_vkapp (struct vkapp* p)
+init_vkapp (struct vkapp* p,
+	    GLFWwindow* glfw_window)
 {
 	p->vlayers = get_vlayers ();
+	p->glfw_window = glfw_window;
 }
 
 static inline void
 term_vkapp (struct vkapp* p)
 {
 	g_array_free (p->vlayers, TRUE);
+	glfwDestroyWindow (p->glfw_window);
 }
 
 struct __cmp_VkLayerProperties_name {
@@ -112,48 +118,9 @@ main(void)
 		glfwTerminate ();
 		return -1;
 	}
-	vkapp->glfw_window = window;
-	
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
- 
-	uint32_t ext_count;
-	vkEnumerateInstanceExtensionProperties (NULL, &ext_count, NULL);
-	g_print ("Extensions count: %d\n", ext_count);
-
-	VkApplicationInfo vk_vkappinfo = {
-		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.pApplicationName = "Hello, Triangle!",
-		.applicationVersion = VK_MAKE_VERSION (1, 0, 0),
-		.pEngineName = "No Engine",
-		.engineVersion = VK_MAKE_VERSION (1, 0, 0),
-		.apiVersion = VK_API_VERSION_1_0
-	};
-
-	uint32_t glfw_extensions_count = 0;
-	const char** glfw_extensions = NULL;
-	glfw_extensions = glfwGetRequiredInstanceExtensions (&glfw_extensions_count);
-	g_print ("Listing %d glfw extensions: \n", glfw_extensions_count);
-	for (uint32_t i = 0; i < glfw_extensions_count; i++) {
-		g_print ("[%2d] %s\n", i, glfw_extensions[i]);
-	}
-
-	VkInstanceCreateInfo vk_create_info = {
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pApplicationInfo = &vk_vkappinfo,
-		.enabledExtensionCount = glfw_extensions_count,
-		.ppEnabledExtensionNames = glfw_extensions,
-		.enabledLayerCount = 0
-	};
-
-	VkInstance vk_instance;
-	VkResult result = vkCreateInstance (&vk_create_info, NULL, &vk_instance);
-	if (result != VK_SUCCESS) {
-		g_error ("vkCreateInstance failed\n");
-		goto exit;
-	}
-	
-	init_vkapp (vkapp);
+	init_vkapp (vkapp, window);
 	
 	g_print ("Listing avaliable %d layers:\n", vkapp->vlayers->len);
 	for (guint i = 0; i < vkapp->vlayers->len; i++) {
@@ -170,7 +137,49 @@ main(void)
 		g_error ("Missing validation layers. Failed at: %s\n", failed_at);
 		return -1;
 	}
+
+	uint32_t ext_count;
+	vkEnumerateInstanceExtensionProperties (NULL, &ext_count, NULL);
+	g_print ("Extensions count: %d\n", ext_count);
 	
+	uint32_t glfw_extensions_count = 0;
+	const char** glfw_extensions = NULL;
+	glfw_extensions = glfwGetRequiredInstanceExtensions (&glfw_extensions_count);
+	g_print ("Listing %d glfw extensions: \n", glfw_extensions_count);
+	for (uint32_t i = 0; i < glfw_extensions_count; i++) {
+		g_print ("[%2d] %s\n", i, glfw_extensions[i]);
+	}
+
+	VkApplicationInfo vk_appinfo = {
+		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+		.pApplicationName = "Hello, Triangle!",
+		.applicationVersion = VK_MAKE_VERSION (1, 0, 0),
+		.pEngineName = "No Engine",
+		.engineVersion = VK_MAKE_VERSION (1, 0, 0),
+		.apiVersion = VK_API_VERSION_1_0
+	};
+
+	VkInstanceCreateInfo vk_create_info = {
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pApplicationInfo = &vk_appinfo,
+		.enabledExtensionCount = glfw_extensions_count,
+		.ppEnabledExtensionNames = glfw_extensions,
+#ifndef __VK_VLAYERS_NEEDED
+		.enabledLayerCount = 0
+#else
+		.ppEnabledLayerNames = vkapp_required_vlayers,
+		.enabledLayerCount = G_N_ELEMENTS (vkapp_required_vlayers)
+#endif
+	};
+
+	VkInstance vk_instance;
+	VkResult result = vkCreateInstance (&vk_create_info, NULL, &vk_instance);
+	if (result != VK_SUCCESS) {
+		g_error ("vkCreateInstance failed, VkResult: %d\n",
+			 result);
+		goto exit;
+	}
+
 	/* Loop until the user closes  the window */
 	while (!glfwWindowShouldClose(window))
 	{

@@ -9,6 +9,7 @@ OBJS_$(d)	:=$(ASMOBJS_$(d)) $(COBJS_$(d))
 
 CF_$(d)		:=			\
 		$(CF_$(d))		\
+		-Wno-unused-parameter	\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
 		-I$(INCLUDE_TOP)	\

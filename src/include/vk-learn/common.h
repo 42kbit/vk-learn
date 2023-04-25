@@ -3,6 +3,11 @@
 
 #include <glib.h>
 
+/* Variable copy - a shortcut to write this:
+ * VCOPY (sn, struct very_long_struct_name*, _p);
+ * instead of this:
+ * struct very_long_struct_name * sn = (struct very_long_struct_name*) _p;
+*/
 #define VCOPY(new, type, from)	\
 	type new = (type)from
 

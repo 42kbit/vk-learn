@@ -21,11 +21,34 @@ const char* vkapp_required_vlayers[] = {
 #endif
 };
 
+/* All info needed for rendeing Vulkan Application. */
+struct vkapp {
+	GLFWwindow*		 glfw_window;
+	GArray*			 vlayers;
+	GArray*			 exts;
+	VkInstance 		 instance;
+	VkPhysicalDevice	 physdev;
+#ifdef DEBUG
+	VkDebugUtilsMessengerEXT debug_messenger;
+#endif
+};
+struct vkapp __vkapp; /* Shall not be accessed directly */
+
+#ifdef __VK_VLAYERS_NEEDED
+static inline bool
+vkapp_matches_vlayers (struct vkapp* p,
+		       const char**  vlneeded,
+		       guint	     vlneeded_len,
+		       const char**  vlfailed_on);
+#endif
+
+#ifdef DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT      msg_severity,
 		VkDebugUtilsMessageTypeFlagsEXT	       	    message_type,
 		const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
 		void* _udata);
+#endif
 
 static inline GArray*
 vk_get_vlayers (void)
@@ -57,14 +80,14 @@ vk_get_required_ext (void)
 	glfw_exts = glfwGetRequiredInstanceExtensions (&glfw_n);
 	nexts = glfw_n;
 
-#ifdef __VK_VLAYERS_NEEDED
+#ifdef DEBUG
 	nexts += 1; /* VK_EXT_DEBUG_UTILS_EXTENSION_NAME */
 #endif
 
 	p = g_array_sized_new (FALSE, TRUE, sizeof (const char*), nexts);
 	g_array_append_vals (p, glfw_exts, glfw_n);
 
-#ifdef __VK_VLAYERS_NEEDED
+#ifdef DEBUG
 	g_array_append_val  (p, debug_ext);
 #endif
 	return p;
@@ -97,26 +120,9 @@ term_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT     p,
 	func (instance, p, callbacks);
 }
 
-/* All info needed for rendeing Vulkan Application. */
-struct vkapp {
-	GLFWwindow*		 glfw_window;
-	GArray*			 vlayers;
-	GArray*			 exts;
-	VkInstance 		 instance;
-#ifdef DEBUG
-	VkDebugUtilsMessengerEXT debug_messenger;
-#endif
-};
-struct vkapp __vkapp; /* Shall not be accessed directly */
-
 static inline void
-init_vkapp (struct vkapp* p,
-	    GLFWwindow*	  glfw_window)
+init_vkapp_instance (struct vkapp* p)
 {
-	p->exts = vk_get_required_ext ();
-	p->vlayers = vk_get_vlayers ();
-	p->glfw_window = glfw_window;
-	
 	VkResult result;
 	
 #ifdef DEBUG
@@ -170,6 +176,28 @@ init_vkapp (struct vkapp* p,
 						NULL);
 	g_assert (result == VK_SUCCESS);
 #endif
+
+#ifdef __VK_VLAYERS_NEEDED
+	const char* failed_at = NULL;
+	if (!vkapp_matches_vlayers (p,
+				    vkapp_required_vlayers,
+				    G_N_ELEMENTS (vkapp_required_vlayers),
+				    &failed_at))
+	{
+		g_error ("Missing validation layers. Failed at: %s\n", failed_at);
+		g_assert (false);
+	}
+#endif
+}
+
+static inline void
+init_vkapp (struct vkapp* p,
+	    GLFWwindow*	  glfw_window)
+{
+	p->exts = vk_get_required_ext ();
+	p->vlayers = vk_get_vlayers ();
+	p->glfw_window = glfw_window;
+	init_vkapp_instance (p);
 }
 
 static inline void
@@ -247,10 +275,12 @@ vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT      msg_severity,
 		   const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
 		   void* _udata)
 {
+#ifdef DEBUG
 	const char* severity_str = getstr_VkDebugUtilsMessageSeverityFlagBitsEXT (msg_severity);
 	
 	g_printerr ("[%s] %s\n", severity_str, callback_data->pMessage);
 	return msg_severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+#endif
 }
 
 int
@@ -273,16 +303,6 @@ main(void)
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
 	init_vkapp (vkapp, window);
-
-	const char* failed_at = NULL;
-	if (!vkapp_matches_vlayers (vkapp,
-				    vkapp_required_vlayers,
-				    G_N_ELEMENTS (vkapp_required_vlayers),
-				    &failed_at))
-	{
-		g_error ("Missing validation layers. Failed at: %s\n", failed_at);
-		return -1;
-	}
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))

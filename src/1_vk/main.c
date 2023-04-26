@@ -118,6 +118,21 @@ init_vkapp (struct vkapp* p,
 	p->glfw_window = glfw_window;
 	
 	VkResult result;
+	
+#ifdef DEBUG
+	VkDebugUtilsMessengerCreateInfoEXT dm_create_info = {
+		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
+			       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+		.pfnUserCallback = vk_debug_callback,
+		.pUserData = NULL
+	};
+#endif
+
 	VkApplicationInfo vk_app_info = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = "Hello, Triangle!",
@@ -133,27 +148,22 @@ init_vkapp (struct vkapp* p,
 		.enabledExtensionCount = p->exts->len,
 		.ppEnabledExtensionNames = (const char * const *)p->exts->data,
 #ifndef __VK_VLAYERS_NEEDED
-		.enabledLayerCount = 0
+		.enabledLayerCount = 0,
 #else
 		.ppEnabledLayerNames = vkapp_required_vlayers,
-		.enabledLayerCount = G_N_ELEMENTS (vkapp_required_vlayers)
+		.enabledLayerCount = G_N_ELEMENTS (vkapp_required_vlayers),
+#endif
+#ifdef DEBUG
+		.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&dm_create_info
+#else
+		.pNext = NULL
 #endif
 	};
 	
 	result = vkCreateInstance (&vk_create_info, NULL, &p->instance);
 	g_assert (result == VK_SUCCESS);
 #ifdef DEBUG
-	VkDebugUtilsMessengerCreateInfoEXT dm_create_info = {
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
-			       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-		.pfnUserCallback = vk_debug_callback,
-		.pUserData = NULL
-	};
+
 	result = init_VkDebugUtilsMessengerEXT (&p->debug_messenger,
 						p->instance,
 						&dm_create_info,
@@ -219,16 +229,28 @@ vkapp_matches_vlayers (struct vkapp* p,
 	return TRUE;
 } 
 
+static inline const char *
+getstr_VkDebugUtilsMessageSeverityFlagBitsEXT (VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity)
+{
+	switch (msg_severity) {
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "LOG";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:    return "LOG";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "WRN";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:   return "ERR";
+		default: return "INV"; /* Invalid */
+	}
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT      msg_severity,
-		   VkDebugUtilsMessageTypeFlagsEXT	       message_type,
+		   VkDebugUtilsMessageTypeFlagsEXT	       msg_type,
 		   const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
 		   void* _udata)
 {
-	if (msg_severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-		return VK_FALSE;
-	g_printerr ("Validation failed: %s\n", callback_data->pMessage);
-	return VK_TRUE;
+	const char* severity_str = getstr_VkDebugUtilsMessageSeverityFlagBitsEXT (msg_severity);
+	
+	g_printerr ("[%s] %s\n", severity_str, callback_data->pMessage);
+	return msg_severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 }
 
 int

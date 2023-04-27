@@ -11,9 +11,28 @@
 #define VCOPY(new, type, from)	\
 	type new = (type)from
 
+#define ZEROTYPE(var)		\
+	memset (var, 0, sizeof (*var))
+
+static inline void
+g_array_remove_by_predicate (GArray* p,
+			     gboolean (*pred) (
+			             GArray*  arr,
+				     guint    idx,
+				     gpointer _udata
+			     ),
+			     gpointer _udata)
+{
+	for (guint i = 0; i < p->len; i++) {
+		if (pred (p, i, _udata) == FALSE) {
+			g_array_remove_index_fast (p, i);
+		}
+	}
+}
+
 static inline void
 g_array_traverse (GArray* arr,
-		  bool (*func) (
+		  gboolean (*func) (
 			  GArray*  arr,
 			  guint    idx,
 			  gpointer user_data

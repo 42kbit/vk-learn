@@ -41,19 +41,19 @@ struct __cmp_VkLayerProperties_name {
 	const char* search_for;
 };
 
-static inline bool
+static inline gboolean
 g_array_cmp_VkLayerProperties_name (GArray*  arr,
 		     		    guint    idx,
 		     		    gpointer _udata);
 
 #ifdef __VK_VLAYERS_NEEDED
-static inline bool
+static inline gboolean
 vkapp_matches_vlayers (struct vkapp* p,
 		       const char**  vlneeded,
 		       guint	     vlneeded_len,
 		       const char**  vlfailed_on);
 
-static inline bool
+static inline gboolean
 vkapp_matches_vlayers (struct vkapp* p,
 		       const char**  vlneeded,
 		       guint	     vlneeded_len,
@@ -277,7 +277,7 @@ term_vkapp (struct vkapp* p)
 }
 
 
-static inline bool
+static inline gboolean
 g_array_cmp_VkLayerProperties_name (GArray*  arr,
 		     		    guint    idx,
 		     		    gpointer _udata)

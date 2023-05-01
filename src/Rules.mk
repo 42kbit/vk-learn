@@ -1,3 +1,5 @@
 INCLUDE_TOP	:=$(d)/include
+GLIBEXT_TOP	:=$(d)/glibext
 
-SUBDIRS_$(d)	:=0_init 1_vlayers 2_physdev
+# note that glibext is checked first
+SUBDIRS_$(d)	:=glibext 0_init 1_vlayers 2_physdev 3_ldev

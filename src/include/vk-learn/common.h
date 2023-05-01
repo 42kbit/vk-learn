@@ -14,6 +14,11 @@
 #define ZEROTYPE(var)		\
 	memset (var, 0, sizeof (*var))
 
+#define G_OFFSET_OF(p, type, member)	\
+	((gpointer)((guint8*)(p) - G_STRUCT_OFFSET (type, member)))
+
+#include <glibext/goptional.h>
+
 static inline void
 g_array_remove_by_predicate (GArray* p,
 			     gboolean (*pred) (

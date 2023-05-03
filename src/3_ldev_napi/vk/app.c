@@ -1,150 +1,7 @@
-#ifdef DEBUG
- #define __VK_VLAYERS_NEEDED 1
-#else
- #define G_DISABLE_ASSERT 1
-#endif
+#include <vk/vk.h>
+#include <ztarray.h>
 
-#define EVKDEFAULT 42
-
-#include <GLFW/glfw3.h>
-#include <cglm/mat4.h>
-#include <cglm/vec4.h>
-
-#include <vulkan/vulkan.h>
-#include <vulkan/vk_validation_error_messages.h>
-
-#include <glib.h>
-
-#include <vk/common.h>
-
-/*
- * On error return.
- * If function (argument x) returns negative value (error)
- * return from current function with the same error code, else
- * continue execution.
- *
- * Usage:
- * ERET (func (a, b, c));
-*/
-
-#define ERET(x)					\
-G_STMT_START {					\
-	int __retval = 0;			\
-	if ((__retval = x) < 0)			\
-		return __retval;		\
-} G_STMT_END
-
-struct eguint {
-	guint	  value;
-	GOptional opt;
-};
-G_OPTIONAL_GENCB (struct eguint, vkq_gfamily_set_cb,
-		  value, opt);
-
-/* All info needed for rendeing Vulkan Application. */
-struct vkapp {
-	GLFWwindow*		 glfw_window;
-	GArray*			 exts;
-	VkInstance 		 instance;
-	GArray*			 physdevs; /* All VkPhysicalDevices   */
-	VkPhysicalDevice	 pd_used;  /* Picked VkPhysicalDevice */
-
-	GArray*       		 qprops_all;
-	struct eguint 		 gfamily_idx;
-#ifdef __VK_VLAYERS_NEEDED
-	GArray*			 vlayers;
-#endif
-#ifdef DEBUG
-	VkDebugUtilsMessengerEXT debug_messenger;
-#endif
-};
 struct vkapp __vkapp; /* Shall not be accessed directly */
-
-struct __cmp_VkLayerProperties_name {
-	VkLayerProperties** dst;
-	const char* search_for;
-};
-
-static inline gboolean
-g_array_cmp_VkLayerProperties_name (GArray*  arr,
-		     		    guint    idx,
-		     		    gpointer _udata);
-
-#ifdef __VK_VLAYERS_NEEDED
-const char* vkapp_required_vlayers[] = {
-	"VK_LAYER_KHRONOS_validation"
-};
-static inline gboolean
-vkapp_matches_vlayers (struct vkapp* p,
-		       const char**  vlneeded,
-		       guint	     vlneeded_len,
-		       const char**  vlfailed_on);
-
-static inline gboolean
-vkapp_matches_vlayers (struct vkapp* p,
-		       const char**  vlneeded,
-		       guint	     vlneeded_len,
-		       const char**  vlfailed_on)
-{
-	VkLayerProperties* found;
-	struct __cmp_VkLayerProperties_name args;
-
-	guint i = 0;
-	for (i = 0; i < vlneeded_len; i++) {
-		found = NULL;
-		args.dst = &found;
-		args.search_for = vlneeded[i];
-		g_array_traverse (p->vlayers, g_array_cmp_VkLayerProperties_name, &args);
-		if (!found) {
-			*vlfailed_on = args.search_for;
-			return FALSE;
-		}
-	}
-	return TRUE;
-} 
-
-static inline GArray*
-vk_get_vlayers (void)
-{
-	VkResult result;
-	GArray * vlayers;
-	guint    vlayers_cnt;
-	/* Assume vkEnumerateInstanceLayerProperties does throw VK_SUCCESS */
-	result = vkEnumerateInstanceLayerProperties (&vlayers_cnt, NULL);
-	g_assert (result == VK_SUCCESS);
-	
-	if (vlayers_cnt == 0)
-		return NULL;
-
-	vlayers = g_array_sized_new (FALSE, FALSE, sizeof (VkLayerProperties), vlayers_cnt);
-	result = vkEnumerateInstanceLayerProperties (&vlayers_cnt, (VkLayerProperties*)vlayers->data);
-	g_assert (result == VK_SUCCESS);
-
-	g_array_set_size (vlayers, vlayers_cnt);
-	return vlayers;
-}
-#endif
-
-
-static inline GArray*
-vk_get_physdevs (VkInstance instance)
-{
-	VkResult result;
-	GArray*  physdevs;
-	guint    physdevs_cnt;
-	
-	result = vkEnumeratePhysicalDevices (instance, &physdevs_cnt, NULL);
-	g_assert (result == VK_SUCCESS);
-
-	if (physdevs_cnt == 0)
-		return NULL;
-
-	physdevs = g_array_sized_new (FALSE, FALSE, sizeof (VkPhysicalDevice), physdevs_cnt);
-	result = vkEnumeratePhysicalDevices (instance, &physdevs_cnt, (VkPhysicalDevice*)physdevs->data);
-	g_assert (result == VK_SUCCESS);
-	g_array_set_size (physdevs, physdevs_cnt);
-	return physdevs;
-}
 
 #ifdef DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -233,48 +90,6 @@ is_suitable_VkPhysicalDevice (GArray*  arr,
 	return TRUE;
 }
 
-static inline GArray*
-vk_get_required_ext (void)
-{
-	GArray* p;
-	const char** glfw_exts;
-	const char * const debug_ext = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-	guint glfw_n;
-	guint nexts;
-
-	glfw_exts = glfwGetRequiredInstanceExtensions (&glfw_n);
-	nexts = glfw_n;
-
-#ifdef DEBUG
-	nexts += 1; /* VK_EXT_DEBUG_UTILS_EXTENSION_NAME */
-#endif
-
-	p = g_array_sized_new (FALSE, TRUE, sizeof (const char*), nexts);
-	g_array_append_vals (p, glfw_exts, glfw_n);
-
-#ifdef DEBUG
-	g_array_append_val  (p, debug_ext);
-#endif
-	return p;
-}
-
-static inline GArray*
-vk_get_queue_family_props (VkPhysicalDevice physdev)
-{
-	GArray* p;
-	guint nfamilies = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties (physdev,
-						  &nfamilies,
-						  NULL);
-	if (nfamilies == 0)
-		return NULL;
-	p = g_array_sized_new (FALSE, FALSE, sizeof (VkQueueFamilyProperties), nfamilies);
-	g_array_set_size (p, nfamilies);
-	vkGetPhysicalDeviceQueueFamilyProperties (physdev, &nfamilies,
-						  (VkQueueFamilyProperties*) p->data);
-	return p;
-}
-
 static inline gint
 init_vkapp_instance (struct vkapp* p,
 		     GError**	   e)
@@ -284,8 +99,7 @@ init_vkapp_instance (struct vkapp* p,
 #ifdef __VK_VLAYERS_NEEDED
 	const char* failed_at = NULL;
 	if (!vkapp_matches_vlayers (p,
-				    vkapp_required_vlayers,
-				    G_N_ELEMENTS (vkapp_required_vlayers),
+				    (const char**)vkapp_required_vlayers,
 				    &failed_at))
 	{
 		g_set_error (e,
@@ -329,7 +143,7 @@ init_vkapp_instance (struct vkapp* p,
 		.enabledLayerCount = 0,
 #else
 		.ppEnabledLayerNames = vkapp_required_vlayers,
-		.enabledLayerCount = G_N_ELEMENTS (vkapp_required_vlayers),
+		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers),
 #endif
 #ifdef DEBUG
 		.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&dm_create_info
@@ -394,10 +208,12 @@ init_vkapp_queues (struct vkapp* p,
 	}
 }
 
-static inline gint
-init_vkapp (struct vkapp* p,
-	    GError**	  e)
+gint
+init_vkapp (struct vkapp** dst,
+	    GError**	   e)
 {
+	struct vkapp* p = &__vkapp;
+	*dst = p;
 	ZEROTYPE (p);
 	/* Initialize the library */
 	if (!glfwInit())
@@ -425,7 +241,7 @@ init_vkapp (struct vkapp* p,
 	return 0;
 }
 
-static inline void
+void
 term_vkapp (struct vkapp* p, GError** e)
 {
 #ifdef DEBUG
@@ -441,63 +257,3 @@ term_vkapp (struct vkapp* p, GError** e)
 	glfwTerminate();
 }
 
-static inline void
-vkapp_enter_mainloop (struct vkapp* p, GError** e) {
-	/* Loop until the user closes the window */
-	while (!glfwWindowShouldClose(p->glfw_window))
-	{
-		/* Swap front and back buffers */
-		glfwSwapBuffers(p->glfw_window);
-
-		/* Poll for and process events */
-		glfwPollEvents();
-	}
-}
-
-static inline gboolean
-g_array_cmp_VkLayerProperties_name (GArray*  arr,
-		     		    guint    idx,
-		     		    gpointer _udata)
-{
-	VCOPY (udata, struct __cmp_VkLayerProperties_name*, _udata);
-	VkLayerProperties* current = &g_array_index (arr, VkLayerProperties, idx);
-
-	int cmpres = strcmp (udata->search_for, current->layerName);
-	if (cmpres == 0) {
-		*udata->dst = current;
-		return FALSE;
-	}
-	return TRUE;
-}
-
-int
-main(void)
-{
-	struct vkapp* vkapp = &__vkapp;
-	GError*	      ecode = NULL;
-
-	init_vkapp (vkapp, &ecode);
-	if (ecode) {
-		g_printerr ("Vulkan init error.\n Error string: %s\n", ecode->message);
-		g_error_free (ecode);
-		ecode = NULL;
-		goto app_term;
-	}
-
-	vkapp_enter_mainloop (vkapp, &ecode);
-	if (ecode) {
-		g_printerr ("Vulkan mainloop error.\n Error string: %s\n", ecode->message);
-		g_error_free (ecode);
-		ecode = NULL;
-		goto app_term;
-	}
-	
-app_term:;
-	term_vkapp (vkapp, &ecode);
-	if (ecode) {
-		g_printerr ("Vulkan termination error.\n Error string: %s\n", ecode->message);
-		g_error_free (ecode);
-		ecode = NULL;
-	}
-	return 0;
-}

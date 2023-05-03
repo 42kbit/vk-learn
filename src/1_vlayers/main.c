@@ -13,7 +13,7 @@
 
 #include <glib.h>
 
-#include <vk-learn/common.h>
+#include <vk/common.h>
 
 const char* vkapp_required_vlayers[] = {
 #ifdef __VK_VLAYERS_NEEDED

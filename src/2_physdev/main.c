@@ -15,7 +15,7 @@
 
 #include <glib.h>
 
-#include <vk-learn/common.h>
+#include <vk/common.h>
 
 /*
  * On error return.

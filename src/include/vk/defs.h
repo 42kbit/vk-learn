@@ -1,0 +1,6 @@
+#ifndef __H_SRC_INCLUDE_VK_DEFS_H
+#define __H_SRC_INCLUDE_VK_DEFS_H
+
+#define EVKDEFAULT 42
+
+#endif /* __H_SRC_INCLUDE_VK_DEFS_H */

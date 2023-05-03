@@ -1,0 +1,6 @@
+#ifndef __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GLIBEXT_H
+#define __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GLIBEXT_H
+
+#include <glibext/goptional.h>
+
+#endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GLIBEXT_H */

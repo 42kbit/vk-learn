@@ -1,5 +1,5 @@
-#ifndef __H_SRC_INCLUDE_VK_LEARN_COMMON_H
-#define __H_SRC_INCLUDE_VK_LEARN_COMMON_H
+#ifndef __H_SRC_INCLUDE_VK_COMMON_H
+#define __H_SRC_INCLUDE_VK_COMMON_H
 
 #include <glib.h>
 
@@ -16,6 +16,23 @@
 
 #define G_OFFSET_OF(p, type, member)	\
 	((gpointer)((guint8*)(p) - G_STRUCT_OFFSET (type, member)))
+
+/*
+ * On error return.
+ * If function (argument x) returns negative value (error)
+ * return from current function with the same error code, else
+ * continue execution.
+ *
+ * Usage:
+ * ERET (func (a, b, c));
+*/
+
+#define ERET(x)					\
+G_STMT_START {					\
+	int __retval = 0;			\
+	if ((__retval = x) < 0)			\
+		return __retval;		\
+} G_STMT_END
 
 #include <glibext/goptional.h>
 
@@ -52,4 +69,4 @@ g_array_traverse (GArray* arr,
 	}
 }
 
-#endif /* __H_SRC_INCLUDE_VK_LEARN_COMMON_H */
+#endif /* __H_SRC_INCLUDE_VK_COMMON_H */

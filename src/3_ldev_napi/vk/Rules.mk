@@ -1,6 +1,7 @@
 ASMOBJS_$(d)	:=
 COBJS_$(d)	:=$(od)/gets.o		\
 		  $(od)/vlayers.o	\
+		  $(od)/messenger.o	\
 		  $(od)/app.o
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))

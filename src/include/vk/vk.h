@@ -19,8 +19,11 @@
 
 #include <vk/app.h>
 
+#ifdef DEBUG
+#include <vk/messenger.h>
 #ifdef __VK_VLAYERS_NEEDED
 #include <vk/vlayers.h> /* Vulkan validation layers */
-#endif
+#endif /* __VK_VLAYERS_NEEDED */
+#endif /* DEBUG */
 
 #endif /* __H_SRC_INCLUDE_VK_VK_H */

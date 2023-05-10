@@ -1,67 +1,7 @@
 #include <vk/vk.h>
 #include <ztarray.h>
 
-struct vkapp __vkapp; /* Shall not be accessed directly */
-
-#ifdef DEBUG
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT      msg_severity,
-		VkDebugUtilsMessageTypeFlagsEXT	       	    message_type,
-		const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-		void* _udata);
-
-
-static inline const char *
-getstr_VkDebugUtilsMessageSeverityFlagBitsEXT (VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity)
-{
-	switch (msg_severity) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "VRB";
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:    return "LOG";
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "WRN";
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:   return "ERR";
-		default: return "INV"; /* Invalid */
-	}
-}
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT      msg_severity,
-		   VkDebugUtilsMessageTypeFlagsEXT	       msg_type,
-		   const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-		   void* _udata)
-{
-	const char* severity_str = getstr_VkDebugUtilsMessageSeverityFlagBitsEXT (msg_severity);
-	
-	g_printerr ("[%s] %s\n", severity_str, callback_data->pMessage);
-	return msg_severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-}
-
-static inline VkResult
-init_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT* p,
-			       VkInstance		 instance,
-			       const VkDebugUtilsMessengerCreateInfoEXT* create_info,
-			       const VkAllocationCallbacks*		 callbacks)
-{
-	PFN_vkVoidFunction _func;
-	_func = vkGetInstanceProcAddr (instance, "vkCreateDebugUtilsMessengerEXT");
-						  
-	if (!_func)
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	VCOPY (func, PFN_vkCreateDebugUtilsMessengerEXT, _func);
-	return func (instance, create_info, callbacks, p);
-}
-
-static inline void
-term_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT     p,
-			       VkInstance		    instance,
-			       const VkAllocationCallbacks* callbacks)
-{
-	PFN_vkVoidFunction _func;
-	_func = vkGetInstanceProcAddr (instance, "vkDestroyDebugUtilsMessengerEXT");
-	g_assert (_func != NULL);
-	VCOPY (func, PFN_vkDestroyDebugUtilsMessengerEXT, _func);
-	func (instance, p, callbacks);
-}
-#endif
+static struct vkapp __vkapp; /* Shall not be accessed directly */
 
 static inline gboolean
 is_suitable_VkPhysicalDevice (GArray*  arr,
@@ -244,8 +184,10 @@ init_vkapp (struct vkapp** dst,
 void
 term_vkapp (struct vkapp* p, GError** e)
 {
+	VkResult result;
 #ifdef DEBUG
-	term_VkDebugUtilsMessengerEXT (p->debug_messenger, p->instance, NULL);
+	result = term_VkDebugUtilsMessengerEXT (p->debug_messenger, p->instance, NULL);
+	g_assert (result == VK_SUCCESS);
 #endif
 #ifdef __VK_VLAYERS_NEEDED
 	g_array_free (p->vlayers, TRUE);

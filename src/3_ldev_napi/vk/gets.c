@@ -1,28 +1,5 @@
 #include <vk/vk.h>
 
-#ifdef __VK_VLAYERS_NEEDED
-GArray*
-vk_get_vlayers (void)
-{
-	VkResult result;
-	GArray * vlayers;
-	guint    vlayers_cnt;
-	/* Assume vkEnumerateInstanceLayerProperties does throw VK_SUCCESS */
-	result = vkEnumerateInstanceLayerProperties (&vlayers_cnt, NULL);
-	g_assert (result == VK_SUCCESS);
-	
-	if (vlayers_cnt == 0)
-		return NULL;
-
-	vlayers = g_array_sized_new (FALSE, FALSE, sizeof (VkLayerProperties), vlayers_cnt);
-	result = vkEnumerateInstanceLayerProperties (&vlayers_cnt, (VkLayerProperties*)vlayers->data);
-	g_assert (result == VK_SUCCESS);
-
-	g_array_set_size (vlayers, vlayers_cnt);
-	return vlayers;
-}
-#endif
-
 GArray*
 vk_get_physdevs (VkInstance instance)
 {

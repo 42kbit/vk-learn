@@ -98,7 +98,7 @@ init_vkapp_instance (struct vkapp* p,
 
 #ifdef __VK_VLAYERS_NEEDED
 	const char* failed_at = NULL;
-	if (!vkapp_matches_vlayers (p,
+	if (!vkvlayers_matches_name (p->vlayers,
 				    (const char**)vkapp_required_vlayers,
 				    &failed_at))
 	{

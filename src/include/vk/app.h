@@ -25,17 +25,15 @@ struct vkapp {
 	GArray*       		 qprops_all;
 	struct eguint 		 gfamily_idx;
 #ifdef __VK_VLAYERS_NEEDED
-	GArray*			 vlayers;
+	GArray*			 vlayers;  /* struct vkvlayer* */
 #endif
 #ifdef DEBUG
 	VkDebugUtilsMessengerEXT debug_messenger;
 #endif
 };
 
-gint init_vkapp (struct vkapp** dst,
-	         GError**	e);
+gint init_vkapp (struct vkapp** dst, GError** e);
 
-void term_vkapp (struct vkapp* p,
-		 GError**      e);
+void term_vkapp (struct vkapp* p, GError** e);
 
 #endif /* __H_SRC_INCLUDE_VK_APP_H */

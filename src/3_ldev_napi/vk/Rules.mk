@@ -1,6 +1,5 @@
 ASMOBJS_$(d)	:=
 COBJS_$(d)	:=$(od)/gets.o		\
-		  $(od)/cmps.o		\
 		  $(od)/vlayers.o	\
 		  $(od)/app.o
 

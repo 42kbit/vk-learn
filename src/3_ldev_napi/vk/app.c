@@ -112,9 +112,10 @@ init_vkapp_pdevs   (struct vkapp* p,
 		    GError** 	  e)
 {
 	guint all_devs = 0;
+	int retcode;
 
-	p->pdevs = vk_get_pdevs (p->instance);
-	if (!p->pdevs) {
+	retcode = get_vkpdevs_from_instance (&p->pdevs, p->instance);
+	if (retcode < 0) {
 		g_set_error (e, EVKDEFAULT, ENODEV, "Vulkan devices not found");
 		return -ENODEV;
 	}
@@ -130,22 +131,6 @@ init_vkapp_pdevs   (struct vkapp* p,
 		return -ENODEV;
 	}
 	return 0;
-}
-
-
-static inline gint
-init_vkapp_queues (struct vkapp* p,
-		   GError** 	 e)
-{
-	p->qprops_all = vk_get_queue_family_props (p->pd_used->pdev);
-	for (guint i = 0; i < p->qprops_all->len; i++) {
-		VkQueueFamilyProperties* iter;
-		iter = &g_array_index (p->qprops_all, VkQueueFamilyProperties, i);
-		if (iter->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			g_optional_set (&p->gfamily_idx.opt, vkq_gfamily_set_cb, &i);
-			break;
-		}
-	}
 }
 
 gint
@@ -174,10 +159,8 @@ init_vkapp (struct vkapp** dst,
 #ifdef __VK_VLAYERS_NEEDED
 	p->vlayers = vk_get_vlayers ();
 #endif
-	g_optional_init (&p->gfamily_idx.opt);
 	ERET (init_vkapp_instance (p, e));
 	ERET (init_vkapp_pdevs    (p, e));
-	ERET (init_vkapp_queues   (p, e));
 	return 0;
 }
 
@@ -192,8 +175,7 @@ term_vkapp (struct vkapp* p, GError** e)
 #ifdef __VK_VLAYERS_NEEDED
 	g_array_free (p->vlayers, TRUE);
 #endif
-	g_array_free (p->pdevs, TRUE);
-	g_array_free (p->qprops_all, TRUE);
+	term_vkpdevs (p->pdevs);
 	vkDestroyInstance (p->instance, NULL);
 	glfwDestroyWindow (p->glfw_window);
 	glfwTerminate();

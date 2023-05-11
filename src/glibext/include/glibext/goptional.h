@@ -51,4 +51,30 @@ g_optional_is_set (struct GOptional* p) {
 	return p->is_set;
 }
 
+
+
+
+
+/* Faster way of setting optional. See pdev.c */
+#define G_GEN_SETOPT(type, fname, m_value, m_opt)	\
+void fname (type* p, glib_typeof (p->m_value) newval) {	\
+	p->m_value = newval;				\
+	p->m_opt = TRUE;				\
+}
+
+#define G_GEN_GETOPT(type, fname, m_opt)			\
+gboolean fname (type* p) {					\
+	return p->m_opt;					\
+}
+
+#define G_GEN_INITOPT(type, fname, m_opt)			\
+void fname (type* p) {						\
+	p->m_opt = FALSE;					\
+}
+
+#define G_GEN_OPT(type, fname, m_value, m_opt)					\
+	static inline G_GEN_INITOPT(type, initopt_##fname, m_opt)		\
+	static inline G_GEN_SETOPT (type, setopt_##fname, m_value, m_opt);	\
+	static inline G_GEN_GETOPT (type, getopt_##fname, m_opt)
+
 #endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GOPTIONAL_H */

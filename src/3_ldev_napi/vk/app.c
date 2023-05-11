@@ -3,33 +3,6 @@
 
 static struct vkapp __vkapp; /* Shall not be accessed directly */
 
-static inline gboolean
-is_suitable_VkPhysicalDevice (GArray*  arr,
-			      guint    idx,
-			      gpointer _udata)
-{
-	gboolean is_discrete;
-	gboolean has_geometry_shader;
-	VkPhysicalDeviceProperties props;
-	VkPhysicalDeviceFeatures   features;
-	VCOPY (picked, struct vkpdev**, _udata);
-
-	struct vkpdev* iter = &g_array_index (arr, struct vkpdev, idx);
-	
-	vkGetPhysicalDeviceProperties (iter->pdev, &props);
-	vkGetPhysicalDeviceFeatures   (iter->pdev, &features);
-	
-	is_discrete = props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-	has_geometry_shader = features.geometryShader;
-	
-	if (is_discrete && has_geometry_shader) {
-		*picked = iter;
-		return FALSE;
-	}
-	
-	return TRUE;
-}
-
 static inline gint
 init_vkapp_instance (struct vkapp* p,
 		     GError**	   e)
@@ -120,7 +93,7 @@ init_vkapp_pdevs   (struct vkapp* p,
 		return -ENODEV;
 	}
 
-	g_array_traverse (p->pdevs, is_suitable_VkPhysicalDevice, &p->pd_used);
+	retcode = get_vkpdevs_best (&p->pd_used, p->pdevs);
 
 	if (!p->pd_used) {
 		g_set_error (e,

@@ -19,6 +19,7 @@ struct vkpdev {
 G_GEN_OPT (struct gfamily, vkq_gfamily, idx, opt);
 
 int get_vkpdevs_from_instance (GArray**, VkInstance instance);
+int get_vkpdevs_best (struct vkpdev**, GArray*);
 void term_vkpdevs (GArray* vkpdevs);
 
 #endif /* __H_SRC_INCLUDE_VK_PDEV_H */

@@ -1,0 +1,4 @@
+#ifndef __H_SRC_INCLUDE_VK_QUEUE_H
+#define __H_SRC_INCLUDE_VK_QUEUE_H
+
+#endif /* __H_SRC_INCLUDE_VK_QUEUE_H */

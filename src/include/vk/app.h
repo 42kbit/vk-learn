@@ -18,9 +18,11 @@ G_OPTIONAL_GENCB (struct eguint,
 struct vkapp {
 	GLFWwindow*		 glfw_window;
 	GArray*			 exts;
+
 	VkInstance 		 instance;
-	GArray*			 physdevs; /* All VkPhysicalDevices   */
-	VkPhysicalDevice	 pd_used;  /* Picked VkPhysicalDevice */
+
+	GArray*			 pdevs; /* All struct vkpdev   */
+	struct vkpdev*		 pd_used;  /* Picked VkPhysicalDevice */
 
 	GArray*       		 qprops_all;
 	struct eguint 		 gfamily_idx;

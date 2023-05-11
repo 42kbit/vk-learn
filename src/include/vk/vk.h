@@ -26,4 +26,6 @@
 #endif /* __VK_VLAYERS_NEEDED */
 #endif /* DEBUG */
 
+#include <vk/pdev.h>
+
 #endif /* __H_SRC_INCLUDE_VK_VK_H */

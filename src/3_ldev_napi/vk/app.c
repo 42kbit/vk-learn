@@ -12,18 +12,18 @@ is_suitable_VkPhysicalDevice (GArray*  arr,
 	gboolean has_geometry_shader;
 	VkPhysicalDeviceProperties props;
 	VkPhysicalDeviceFeatures   features;
-	VCOPY (picked, VkPhysicalDevice*, _udata);
+	VCOPY (picked, struct vkpdev**, _udata);
 
-	VkPhysicalDevice* iter = &g_array_index (arr, VkPhysicalDevice, idx);
+	struct vkpdev* iter = &g_array_index (arr, struct vkpdev, idx);
 	
-	vkGetPhysicalDeviceProperties (*iter, &props);
-	vkGetPhysicalDeviceFeatures   (*iter, &features);
+	vkGetPhysicalDeviceProperties (iter->pdev, &props);
+	vkGetPhysicalDeviceFeatures   (iter->pdev, &features);
 	
 	is_discrete = props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 	has_geometry_shader = features.geometryShader;
 	
 	if (is_discrete && has_geometry_shader) {
-		*picked = *iter;
+		*picked = iter;
 		return FALSE;
 	}
 	
@@ -108,18 +108,18 @@ init_vkapp_instance (struct vkapp* p,
 
 
 static inline gint
-init_vkapp_physdev (struct vkapp* p,
+init_vkapp_pdevs   (struct vkapp* p,
 		    GError** 	  e)
 {
 	guint all_devs = 0;
 
-	p->physdevs = vk_get_physdevs (p->instance);
-	if (!p->physdevs) {
+	p->pdevs = vk_get_pdevs (p->instance);
+	if (!p->pdevs) {
 		g_set_error (e, EVKDEFAULT, ENODEV, "Vulkan devices not found");
 		return -ENODEV;
 	}
 
-	g_array_traverse (p->physdevs, is_suitable_VkPhysicalDevice, &p->pd_used);
+	g_array_traverse (p->pdevs, is_suitable_VkPhysicalDevice, &p->pd_used);
 
 	if (!p->pd_used) {
 		g_set_error (e,
@@ -137,7 +137,7 @@ static inline gint
 init_vkapp_queues (struct vkapp* p,
 		   GError** 	 e)
 {
-	p->qprops_all = vk_get_queue_family_props (p->pd_used);
+	p->qprops_all = vk_get_queue_family_props (p->pd_used->pdev);
 	for (guint i = 0; i < p->qprops_all->len; i++) {
 		VkQueueFamilyProperties* iter;
 		iter = &g_array_index (p->qprops_all, VkQueueFamilyProperties, i);
@@ -176,7 +176,7 @@ init_vkapp (struct vkapp** dst,
 #endif
 	g_optional_init (&p->gfamily_idx.opt);
 	ERET (init_vkapp_instance (p, e));
-	ERET (init_vkapp_physdev  (p, e));
+	ERET (init_vkapp_pdevs    (p, e));
 	ERET (init_vkapp_queues   (p, e));
 	return 0;
 }
@@ -192,7 +192,7 @@ term_vkapp (struct vkapp* p, GError** e)
 #ifdef __VK_VLAYERS_NEEDED
 	g_array_free (p->vlayers, TRUE);
 #endif
-	g_array_free (p->physdevs, TRUE);
+	g_array_free (p->pdevs, TRUE);
 	g_array_free (p->qprops_all, TRUE);
 	vkDestroyInstance (p->instance, NULL);
 	glfwDestroyWindow (p->glfw_window);

@@ -27,35 +27,40 @@ static inline int __init_vkpdev (struct vkpdev* dst,
 	return 0;
 }
 
+#define VK_MAX_PDEVS 32
+
+/* Just in case.
+ * Better rewrite if this fails
+*/
+G_STATIC_ASSERT (sizeof (VkPhysicalDevice) == sizeof (void*));
+
 int get_vkpdevs_from_instance (GArray** dst, VkInstance instance)
 {
 	VkResult result;
-	GArray*  tmp;
 	GArray*  physdevs;
 	guint    physdevs_cnt;
+
+	VkPhysicalDevice tmp[VK_MAX_PDEVS];
 	
 	result = vkEnumeratePhysicalDevices (instance, &physdevs_cnt, NULL);
 	g_assert (result == VK_SUCCESS);
+	g_assert (physdevs_cnt <= 32); /* 32 physical devices? we dont suppport fucking hyper-mainframes */
 
 	if (physdevs_cnt == 0)
 		return -ENODEV;
 
-	tmp =      g_array_sized_new (FALSE, FALSE, sizeof (VkPhysicalDevice), physdevs_cnt);
 	physdevs = g_array_sized_new (FALSE, FALSE, sizeof (struct vkpdev), physdevs_cnt);
 
-	result = vkEnumeratePhysicalDevices (instance, &physdevs_cnt, (VkPhysicalDevice*)tmp->data);
+	result = vkEnumeratePhysicalDevices (instance, &physdevs_cnt, (VkPhysicalDevice*)tmp);
 	g_assert (result == VK_SUCCESS);
-
-	g_array_set_size (tmp, physdevs_cnt); /* Maybe not necesarry */
 
 	/* Valid copy of array */
 	for (guint i = 0; i < physdevs_cnt; i++) {
 		struct vkpdev* dst = &g_array_index (physdevs, struct vkpdev, i);
-		VkPhysicalDevice src = g_array_index (tmp, VkPhysicalDevice, i);
+		VkPhysicalDevice src = tmp[i];
 		dst->pdev = src;
 	}
 
-	g_array_free (tmp, TRUE);
 	g_array_set_size (physdevs, physdevs_cnt);
 	
 	for (guint i = 0; i < physdevs->len; i++) {

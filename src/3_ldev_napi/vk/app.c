@@ -106,6 +106,14 @@ init_vkapp_pdevs   (struct vkapp* p,
 	return 0;
 }
 
+static inline int
+init_vkapp_ldevs (struct vkapp* p, GError** e) {
+	int   idxs[1] = { p->pd_used->qfamily.gfamily.idx };
+	float prio[1] = { 1.f };
+	ERET(init_vkldev_from_vkpdev (&p->ld_used, p->pd_used, idxs,
+				      prio, G_N_ELEMENTS (idxs)));
+}
+
 gint
 init_vkapp (struct vkapp** dst,
 	    GError**	   e)
@@ -134,6 +142,7 @@ init_vkapp (struct vkapp** dst,
 #endif
 	ERET (init_vkapp_instance (p, e));
 	ERET (init_vkapp_pdevs    (p, e));
+	ERET (init_vkapp_ldevs    (p, e));
 	return 0;
 }
 
@@ -149,6 +158,7 @@ term_vkapp (struct vkapp* p, GError** e)
 	g_array_free (p->vlayers, TRUE);
 #endif
 	term_vkpdevs (p->pdevs);
+	term_vkldev  (&p->ld_used);
 	vkDestroyInstance (p->instance, NULL);
 	glfwDestroyWindow (p->glfw_window);
 	glfwTerminate();

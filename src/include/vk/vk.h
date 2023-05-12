@@ -27,5 +27,6 @@
 #endif /* DEBUG */
 
 #include <vk/pdev.h>
+#include <vk/ldev.h>
 
 #endif /* __H_SRC_INCLUDE_VK_VK_H */

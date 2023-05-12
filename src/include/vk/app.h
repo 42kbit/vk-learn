@@ -1,7 +1,7 @@
 #ifndef __H_SRC_INCLUDE_VK_APP_H
 #define __H_SRC_INCLUDE_VK_APP_H
 
-#include <vk/vk.h>
+#include <vk/ldev.h>
 
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
@@ -12,6 +12,9 @@ struct vkapp {
 
 	GArray*			 pdevs;    /* All struct vkpdev   */
 	struct vkpdev*		 pd_used;  /* Picked VkPhysicalDevice */
+
+	struct vkldev		 ld_used;
+
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			 vlayers;  /* struct vkvlayer* */
 #endif  

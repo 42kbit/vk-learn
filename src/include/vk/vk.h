@@ -29,4 +29,6 @@
 #include <vk/pdev.h>
 #include <vk/ldev.h>
 
+#include <vk/queue.h>
+
 #endif /* __H_SRC_INCLUDE_VK_VK_H */

@@ -2,6 +2,7 @@
 #define __H_SRC_INCLUDE_VK_APP_H
 
 #include <vk/ldev.h>
+#include <vk/queue.h>
 
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
@@ -14,6 +15,8 @@ struct vkapp {
 	struct vkpdev*		 pd_used;  /* Picked VkPhysicalDevice */
 
 	struct vkldev		 ld_used;
+	
+	struct vkqueue		 gqueue;   /* Graphics queue */
 
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			 vlayers;  /* struct vkvlayer* */

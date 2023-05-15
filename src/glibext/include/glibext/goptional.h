@@ -72,9 +72,15 @@ void fname (type* p) {						\
 	p->m_opt = FALSE;					\
 }
 
+#define G_GEN_GETVAL(type, fname, m_value)			\
+glib_typeof (((type*)0)->m_value) fname (type* p) {		\
+	return p->m_value;					\
+}
+
 #define G_GEN_OPT(type, fname, m_value, m_opt)					\
 	static inline G_GEN_INITOPT(type, initopt_##fname, m_opt)		\
 	static inline G_GEN_SETOPT (type, setopt_##fname, m_value, m_opt);	\
-	static inline G_GEN_GETOPT (type, getopt_##fname, m_opt)
+	static inline G_GEN_GETOPT (type, getopt_##fname, m_opt);		\
+	static inline G_GEN_GETVAL (type, getval_##fname, m_value);
 
 #endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GOPTIONAL_H */

@@ -9,7 +9,7 @@ struct vkapp {
 	GLFWwindow*		 glfw_window;
 	GArray*			 exts;
 
-	VkInstance 		 instance;
+	VkInstance		 instance;
 
 	GArray*			 pdevs;    /* All struct vkpdev   */
 	struct vkpdev*		 pd_used;  /* Picked VkPhysicalDevice */

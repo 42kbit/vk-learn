@@ -1,9 +1,12 @@
-
 ASMOBJS_$(d)	:=
-COBJS_$(d)	:=$(od)/main.o
-
-TGT_VKEXAMPLE_3	:=$(bd)/main
-TGTS_$(d)	:=$(TGT_VKEXAMPLE_3)
+COBJS_$(d)	:=$(od)/gets.o		\
+		  $(od)/vlayers.o	\
+		  $(od)/messenger.o	\
+		  $(od)/pdev.o		\
+		  $(od)/pdev_best.o	\
+		  $(od)/ldev.o		\
+		  $(od)/queue.o	\
+		  $(od)/app.o
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))
 
@@ -14,11 +17,9 @@ CF_$(d)		:=			\
 		-Wno-unused-parameter	\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
-		-I$(d)/include		\
+		-I$(d)/../include	\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
-
-$(info $(CF_$(d)))
 
 LF_$(TGTS_$(d))		:=		\
 		$(LF_$(d))		\
@@ -33,9 +34,5 @@ LF_$(TGTS_$(d))		:=		\
 		-lvulkan
 
 $(COBJS_$(d)): $(GLIBEXT_LIB) $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB)
-
-$(d): $(TGTS_$(d))
-$(TGTS_$(d)): $(GLIBEXT_LIB) $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB) $(OBJS_$(d))
-	$(L_LINK)
-
-SUBDIRS_$(d)	:=vk
+$(d): $(TGT_VKEXAMPLE_5)
+$(TGT_VKEXAMPLE_5): $(OBJS_$(d))

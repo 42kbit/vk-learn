@@ -2,8 +2,8 @@
 ASMOBJS_$(d)	:=
 COBJS_$(d)	:=$(od)/main.o
 
-TGT_VKEXAMPLE_3	:=$(bd)/main
-TGTS_$(d)	:=$(TGT_VKEXAMPLE_3)
+TGT_VKEXAMPLE_4	:=$(bd)/main
+TGTS_$(d)	:=$(TGT_VKEXAMPLE_4)
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))
 
@@ -14,7 +14,7 @@ CF_$(d)		:=			\
 		-Wno-unused-parameter	\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
-		-I$(INCLUDE_TOP)	\
+		-I$(d)/include		\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
 

@@ -17,7 +17,7 @@ CF_$(d)		:=			\
 		-Wno-unused-parameter	\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
-		-I$(INCLUDE_TOP)	\
+		-I$(d)/../include	\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
 
@@ -34,5 +34,5 @@ LF_$(TGTS_$(d))		:=		\
 		-lvulkan
 
 $(COBJS_$(d)): $(GLIBEXT_LIB) $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB)
-$(d): $(TGT_VKEXAMPLE_3)
-$(TGT_VKEXAMPLE_3): $(OBJS_$(d))
+$(d): $(TGT_VKEXAMPLE_4)
+$(TGT_VKEXAMPLE_4): $(OBJS_$(d))

@@ -12,7 +12,7 @@ CF_$(d)		:=			\
 		-Wno-unused-parameter	\
 		-I$(GLFW_INCLUDE_DIR)	\
 		-I$(CGLM_INCLUDE_DIR)	\
-		-I$(INCLUDE_TOP)	\
+		-I$(d)/include		\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
 

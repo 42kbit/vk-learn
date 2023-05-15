@@ -2,8 +2,8 @@
 ASMOBJS_$(d)	:=
 COBJS_$(d)	:=$(od)/main.o
 
-TGT_VKEXAMPLE_3	:=$(bd)/main
-TGTS_$(d)	:=$(TGT_VKEXAMPLE_3)
+TGT_VKEXAMPLE_5	:=$(bd)/main
+TGTS_$(d)	:=$(TGT_VKEXAMPLE_5)
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))
 
@@ -17,8 +17,6 @@ CF_$(d)		:=			\
 		-I$(d)/include		\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
-
-$(info $(CF_$(d)))
 
 LF_$(TGTS_$(d))		:=		\
 		$(LF_$(d))		\

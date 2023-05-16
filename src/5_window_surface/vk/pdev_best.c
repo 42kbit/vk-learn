@@ -1,5 +1,5 @@
-#include <vk/vk.h>
 #include <vk/pdev.h>
+#include <vk/common.h>
 
 static inline gboolean
 __is_suitable_VkPhysicalDevice (GArray*  arr,

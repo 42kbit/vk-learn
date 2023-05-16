@@ -1,5 +1,5 @@
-#ifndef __H_SRC_INCLUDE_VK_COMMON_H
-#define __H_SRC_INCLUDE_VK_COMMON_H
+#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_COMMON_H
+#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_COMMON_H
 
 #include <glib.h>
 
@@ -69,4 +69,4 @@ g_array_traverse (GArray* arr,
 	}
 }
 
-#endif /* __H_SRC_INCLUDE_VK_COMMON_H */
+#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_COMMON_H */

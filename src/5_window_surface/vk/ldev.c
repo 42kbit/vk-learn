@@ -1,4 +1,3 @@
-#include <vk/vk.h>
 #include <vk/ldev.h>
 #include <ztarray.h>
 

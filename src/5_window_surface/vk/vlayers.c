@@ -1,5 +1,10 @@
-#include <vk/vk.h>
+#include <glib.h>
+#include <vulkan/vulkan.h>
+
 #include <vk/vlayers.h>
+
+#include <vk/common.h>
+#include <vk/defs.h>
 
 #ifdef __VK_VLAYERS_NEEDED
 

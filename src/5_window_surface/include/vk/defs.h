@@ -1,5 +1,5 @@
-#ifndef __H_SRC_INCLUDE_VK_DEFS_H
-#define __H_SRC_INCLUDE_VK_DEFS_H
+#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_DEFS_H
+#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_DEFS_H
 
 #define EVKDEFAULT 42
 
@@ -20,4 +20,4 @@ G_STMT_START {							\
 	var = (PFN_##fname)_func;				\
 } G_STMT_END
 
-#endif /* __H_SRC_INCLUDE_VK_DEFS_H */
+#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_DEFS_H */

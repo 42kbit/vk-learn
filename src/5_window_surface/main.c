@@ -1,4 +1,4 @@
-#include <vk/vk.h>
+#include <vk/app.h>
 
 static inline void
 vkapp_enter_mainloop (struct vkapp* p, GError** e) {

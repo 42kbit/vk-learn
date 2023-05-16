@@ -1,7 +1,8 @@
-#ifndef __H_SRC_INCLUDE_VK_VLAYERS_H
-#define __H_SRC_INCLUDE_VK_VLAYERS_H
+#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_VLAYERS_H
+#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_VLAYERS_H
 
-#include <vk/vk.h>
+#include <glib.h>
+#include <vulkan/vulkan.h>
 #include <string.h>
 
 /* ->data is typeof struct vkvlayer */
@@ -19,4 +20,4 @@ gboolean vkvlayers_matches_name (GArray* p,
 			         const char**  vlneeded,
 				 const char**  vlfailed_on);
 
-#endif /* __H_SRC_INCLUDE_VK_VLAYERS_H */
+#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_VLAYERS_H */

@@ -1,4 +1,8 @@
-#include <vk/vk.h>
+#include <vulkan/vulkan.h>
+#include <vk/pdev.h>
+
+#include <vk/common.h>
+#include <vk/defs.h>
 
 static inline int __init_vkpdev (struct vkpdev* dst,
 				  VkInstance instance)

@@ -1,4 +1,6 @@
-#include <vk/vk.h>
+#include <glib.h>
+#include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 GArray*
 vk_get_required_ext (void)

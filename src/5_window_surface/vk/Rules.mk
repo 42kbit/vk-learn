@@ -5,7 +5,8 @@ COBJS_$(d)	:=$(od)/gets.o		\
 		  $(od)/pdev.o		\
 		  $(od)/pdev_best.o	\
 		  $(od)/ldev.o		\
-		  $(od)/queue.o	\
+		  $(od)/queue.o		\
+		  $(od)/instance.o	\
 		  $(od)/app.o
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))

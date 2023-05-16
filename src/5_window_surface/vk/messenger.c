@@ -1,4 +1,7 @@
-#include <vk/vk.h>
+#include <vk/messenger.h>
+
+#include <vk/common.h>
+#include <vk/defs.h>
 
 #ifdef DEBUG
 

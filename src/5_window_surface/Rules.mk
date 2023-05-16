@@ -18,6 +18,14 @@ CF_$(d)		:=			\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
 
+RCFLAGS :=-DGLFW_INCLUDE_VULKAN
+ifdef DEBUG
+RCFLAGS +=-D__VK_VLAYERS_NEEDED
+else
+RCFLAGS +=-DG_DISABLE_ASSERT
+endif
+$(call subdirs_append_flags, $(d), CF, $(RCFLAGS))
+
 LF_$(TGTS_$(d))		:=		\
 		$(LF_$(d))		\
 		-L$(GLFW_LIB_DIR)	\

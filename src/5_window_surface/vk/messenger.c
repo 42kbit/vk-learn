@@ -53,4 +53,3 @@ VkResult term_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT     p,
 	return VK_SUCCESS;
 }
 #endif
-

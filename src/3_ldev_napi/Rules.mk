@@ -18,8 +18,6 @@ CF_$(d)		:=			\
 		-I$(GLIB_INCLUDE_DIR)	\
 		-I$(GLIBEXT_INCLUDE_DIR)
 
-$(info $(CF_$(d)))
-
 LF_$(TGTS_$(d))		:=		\
 		$(LF_$(d))		\
 		-L$(GLFW_LIB_DIR)	\

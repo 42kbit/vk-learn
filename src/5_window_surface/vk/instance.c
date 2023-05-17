@@ -8,66 +8,9 @@ VkResult init_vkinstance (struct vkinstance* p,
 			  GArray* enable_exts,
 			  struct vkmessenger* msgr)
 {
-	VkResult result;
-
-	p->callbacks = cbs;
-
-#ifdef DEBUG
-	VkDebugUtilsMessengerCreateInfoEXT dm_create_info = {
-		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
-			       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-		.pfnUserCallback = vk_debug_callback,
-		.pUserData = NULL
-	};
-#endif
-
-	VkInstanceCreateInfo vk_create_info = {
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pApplicationInfo = info,
-		.enabledExtensionCount = enable_exts->len,
-		.ppEnabledExtensionNames = (const char * const *)enable_exts->data,
-#ifndef __VK_VLAYERS_NEEDED
-		.enabledLayerCount = 0,
-#else
-		.ppEnabledLayerNames = vkapp_required_vlayers,
-		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers),
-#endif
-#ifdef DEBUG
-		.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&dm_create_info
-#else
-		.pNext = NULL
-#endif
-	};
-
-	result = vkCreateInstance (&vk_create_info, cbs, &p->instance);
-	if (G_UNLIKELY(result != VK_SUCCESS))
-		return result;
-
-#ifdef DEBUG
-	if (msgr) {
-		result = init_vkmessenger (msgr, p, &dm_create_info, cbs);
-		if (G_UNLIKELY(result != VK_SUCCESS))
-			return result;
-	}
-#endif
-	return 0;
-}
-
-/*
-VkResult init_vkinstance (struct vkinstance* p,
-			  const VkApplicationInfo* info,
-			  const VkAllocationCallbacks* cbs,
-			  GArray* enable_exts,
-			  struct vkmessenger* msgr)
-{
-	VkResult result;
-	VkDebugUtilsMessengerCreateInfoEXT dm_create_info;
-	VkInstanceCreateInfo vk_create_info;
+	VkResult result = 0;
+	VkDebugUtilsMessengerCreateInfoEXT dm_create_info = { 0 };
+	VkInstanceCreateInfo vk_create_info = { 0 };
 
 	p->callbacks = cbs;
 
@@ -79,7 +22,9 @@ VkResult init_vkinstance (struct vkinstance* p,
 		dm_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
 					     VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 					     VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+#ifdef DEBUG
 		dm_create_info.pfnUserCallback = vk_debug_callback;
+#endif
 		dm_create_info.pUserData = NULL;
 	}
 
@@ -112,6 +57,3 @@ VkResult init_vkinstance (struct vkinstance* p,
 	}
 	return 0;
 }
-*/
-
-

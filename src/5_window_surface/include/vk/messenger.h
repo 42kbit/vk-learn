@@ -3,6 +3,8 @@
 
 #include <vk/instance.h>
 
+#ifdef DEBUG
+
 VkResult init_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT* 		  p,
 			                VkInstance		 		  instance,
 			                const VkDebugUtilsMessengerCreateInfoEXT* create_info,
@@ -46,5 +48,7 @@ vk_debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT   msg_severity,
 		VkDebugUtilsMessageTypeFlagsEXT	       	    message_type,
 		const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
 		void* _udata);
+
+#endif /* DEBUG */
 
 #endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_MESSENGER_H */

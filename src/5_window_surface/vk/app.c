@@ -11,6 +11,7 @@
 #include <vk/gets.h>
 
 #include <ztarray.h>
+#include <isdefined.h>
 
 static struct vkapp __vkapp; /* Shall not be accessed directly */
 
@@ -46,7 +47,11 @@ static int init_vkapp_glfw_window (struct vkapp* p, GError** e)
 
 static int init_vkapp_vlayers (struct vkapp* p, GError** e)
 {
-#ifdef __VK_VLAYERS_NEEDED
+	if (!IS_DEFINED (__VK_VLAYERS_NEEDED)) {
+		p->vlayers = NULL;
+		return 0;
+	}
+
 	p->vlayers = vk_get_vlayers ();
 	const char* failed_at = NULL;
 	if (!vkvlayers_matches_name (p->vlayers,
@@ -58,7 +63,6 @@ static int init_vkapp_vlayers (struct vkapp* p, GError** e)
 			     failed_at);
 		return -ENODEV;
 	}
-#endif
 	return 0;
 }
 
@@ -75,7 +79,11 @@ static int init_vkapp_instance (struct vkapp* p, GError** e)
 	};
 
 	
+#ifdef DEBUG
 	result = init_vkinstance (&p->instance, &vk_app_info, NULL, p->exts, &p->messenger);
+#else  /* DEBUG */
+	result = init_vkinstance (&p->instance, &vk_app_info, NULL, p->exts, NULL);
+#endif /* DEBUG */
 	if (result != VK_SUCCESS) {
 		g_set_error (e, EVKDEFAULT, EINVAL,
 			     "Failed to create vulkan insatnce, VkResult: %d", result);
@@ -158,16 +166,24 @@ int init_vkapp (struct vkapp** dst, GError** e)
 	return 0;
 }
 
-void term_vkapp (struct vkapp* p, GError** e)
+static inline void __term_vkmessenger_if_debug (struct vkapp* p)
 {
-	VkResult result;
 #ifdef DEBUG
+	VkResult result;
 	result = term_vkmessenger (&p->messenger, NULL);
 	g_assert (result == VK_SUCCESS);
 #endif
-#ifdef __VK_VLAYERS_NEEDED
-	g_array_free (p->vlayers, TRUE);
-#endif
+}
+
+void term_vkapp (struct vkapp* p, GError** e)
+{
+	VkResult result;
+	
+	__term_vkmessenger_if_debug (p);
+
+	if (IS_DEFINED (__VK_VLAYERS_NEEDED)) {
+		g_array_free (p->vlayers, TRUE);
+	}
 	term_vkpdevs (p->pdevs);
 	term_vkldev  (&p->ld_used);
 	term_vksurface_khr (&p->surface);

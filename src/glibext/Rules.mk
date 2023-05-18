@@ -1,6 +1,7 @@
 
 ASMOBJS_$(d)	:=
-COBJS_$(d)	:=$(od)/goptional.o
+COBJS_$(d)	:=$(od)/geoptional.o	\
+		  $(od)/gearray_funcs.o
 
 TGTS_$(d)	:=$(bd)/libglibext.so
 

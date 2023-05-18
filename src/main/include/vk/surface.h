@@ -1,5 +1,5 @@
-#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_SURFACE_H
-#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_SURFACE_H
+#ifndef __H_SRC_MAIN_INCLUDE_VK_SURFACE_H
+#define __H_SRC_MAIN_INCLUDE_VK_SURFACE_H
 
 #include <GLFW/glfw3.h>
 
@@ -40,4 +40,4 @@ static inline void term_vksurface_khr (struct vksurface_khr* p)
 	vkDestroySurfaceKHR (instance, surface, p->callbacks);
 }
 
-#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_SURFACE_H */
+#endif /* __H_SRC_MAIN_INCLUDE_VK_SURFACE_H */

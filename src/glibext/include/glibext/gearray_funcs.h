@@ -18,7 +18,13 @@ static inline void ge_array_traverse (GArray* arr,
 }
 
 /* Defines some usefull callbacks. */
+/* tcb  - Traverse CallBack */
+/* atcb - Array Traverse CallBack*/
 
-gboolean ge_arraytcb_remove_duplicates (GArray* arr, guint idx, gpointer udata);
+struct ge_atcb_args_remove_dups {
+	GCompareDataFunc cmpfunc;
+	gpointer cmpfunc_data;
+};
+gboolean ge_atcb_remove_dups (GArray* arr, guint idx, gpointer udata);
 
 #endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GEARRAY_FUNCS_H */

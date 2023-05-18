@@ -4,6 +4,21 @@
 #include <vk/common.h>
 #include <vk/defs.h>
 
+static int __vkpdev_load_eprops (struct vkpdev* p)
+{
+	/* VkExtensionProperties */
+	guint32 nexts;
+	VkPhysicalDevice p_core = vkpdev_core (p);
+	vkEnumerateDeviceExtensionProperties (p_core, NULL, &nexts, NULL);
+
+	p->eprops = g_array_sized_new (FALSE, FALSE, sizeof (VkExtensionProperties), nexts);
+	if (G_UNLIKELY (!p->eprops))
+		return -ENOMEM;
+	vkEnumerateDeviceExtensionProperties (p_core, NULL, &nexts, (VkExtensionProperties*)p->eprops->data);
+	g_array_set_size (p->eprops, nexts);
+	return 0;
+}
+
 static int __init_vkpdev_gfamily (struct vkpdev* dst)
 {
 	initopt_vkq_gfamily (&dst->qfamily.gfamily);
@@ -101,6 +116,9 @@ int __get_vkpdevs_from_VkInstance (GArray** dst, VkInstance instance)
 		struct vkpdev* dst = &g_array_index (physdevs, struct vkpdev, i);
 		VkPhysicalDevice src = tmp[i];
 		dst->pdev = src;
+		dst->eprops = NULL;
+		initopt_vkq_gfamily (&dst->qfamily.gfamily);
+		initopt_vkq_pfamily (&dst->qfamily.pfamily);
 	}
 
 	g_array_set_size (physdevs, physdevs_cnt);
@@ -128,4 +146,19 @@ void term_vkpdevs (GArray* p) {
 		g_array_free (iter->qfamily.props, TRUE);
 	}
 	g_array_free (p, TRUE);
+}
+
+
+gboolean vkpdev_has_ext (struct vkpdev* p, const char* ext)
+{
+	if (!p->eprops)
+		__vkpdev_load_eprops (p);
+	for (guint i = 0; i < p->eprops->len; i++) {
+		VkExtensionProperties* iter = &g_array_index (p->eprops, VkExtensionProperties, i);
+		int cmpres = strncmp (iter->extensionName, ext, VK_MAX_EXTENSION_NAME_SIZE);
+		if (cmpres == 0) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }

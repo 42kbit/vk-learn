@@ -1,7 +1,8 @@
-#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_ISDEFINED_H
-#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_ISDEFINED_H
+#ifndef __H_SRC_MAIN_INCLUDE_ISDEFINED_H
+#define __H_SRC_MAIN_INCLUDE_ISDEFINED_H
 
 /* Very smart Linus, very smart! */
+
 #define __ARG_PLACEHOLDER_1 0,
 #define ___config_enabled(__ignored, val, ...) val
 #define __config_enabled(arg1_or_junk) ___config_enabled(arg1_or_junk 1, 0)
@@ -27,4 +28,4 @@
 #endif
 #undef __RESERVED_TOKEN_TESTER
 
-#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_ISDEFINED_H */
+#endif /* __H_SRC_MAIN_INCLUDE_ISDEFINED_H */

@@ -1,5 +1,5 @@
-#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_INSTANCE_H
-#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_INSTANCE_H
+#ifndef __H_SRC_MAIN_INCLUDE_VK_INSTANCE_H
+#define __H_SRC_MAIN_INCLUDE_VK_INSTANCE_H
 
 #include <vulkan/vulkan.h>
 #include <vk/vlayers.h>
@@ -28,4 +28,4 @@ static inline void term_vkinstance (struct vkinstance* p)
 	return vkDestroyInstance (vkinstance_core (p), p->callbacks);
 }
 
-#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_INSTANCE_H */
+#endif /* __H_SRC_MAIN_INCLUDE_VK_INSTANCE_H */

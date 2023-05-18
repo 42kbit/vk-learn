@@ -1,5 +1,5 @@
-#ifndef __H_SRC_INCLUDE_ZTARRAY_H
-#define __H_SRC_INCLUDE_ZTARRAY_H
+#ifndef __H_SRC_MAIN_INCLUDE_ZTARRAY_H
+#define __H_SRC_MAIN_INCLUDE_ZTARRAY_H
 
 #include <stddef.h>
 
@@ -9,4 +9,4 @@ static inline ptrdiff_t count_ztarray_len (void** p) {
 	return (iter - p);
 }
 
-#endif /* __H_SRC_INCLUDE_ZTARRAY_H */
+#endif /* __H_SRC_MAIN_INCLUDE_ZTARRAY_H */

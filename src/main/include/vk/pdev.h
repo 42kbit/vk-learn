@@ -21,14 +21,21 @@ struct vkpdev {
 			gboolean opt;
 		} pfamily;
 	} qfamily;
+	GArray* eprops; /* VkExtensionProperties */
 };
+
+extern const char * const required_device_exts[];
 
 GE_GEN_OPT (struct gfamily, vkq_gfamily, idx, opt);
 GE_GEN_OPT (struct pfamily, vkq_pfamily, idx, opt);
 
+gboolean vkpdev_has_ext (struct vkpdev* p, const char* ext);
+
 int get_vkpdevs_best (struct vkpdev**, GArray*);
+
 int init_vkpdevs (GArray** dst, struct vkinstance* instance,
 		  struct vksurface_khr* surface);
+
 void term_vkpdevs (GArray* vkpdevs);
 
 static inline VkPhysicalDevice vkpdev_core (struct vkpdev* p)

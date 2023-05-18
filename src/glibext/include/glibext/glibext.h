@@ -1,6 +1,8 @@
 #ifndef __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GLIBEXT_H
 #define __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GLIBEXT_H
 
+#include <glibext/gemacro.h>
+
 #include <glibext/geoptional.h>
 #include <glibext/gearray_funcs.h>
 

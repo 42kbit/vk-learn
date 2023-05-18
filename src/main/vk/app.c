@@ -1,3 +1,4 @@
+#include <vulkan/vulkan.h>
 
 #include <vk/pdev.h>
 #include <vk/ldev.h>
@@ -15,9 +16,16 @@
 
 static struct vkapp __vkapp; /* Shall not be accessed directly */
 
+const char * const vk_required_extensions[] = {
+#ifdef DEBUG
+	VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+#endif
+};
+
 static int init_vkapp_exts (struct vkapp* p, GError** e)
 {
-	p->exts = vk_get_required_ext ();
+	p->exts = vk_get_required_ext (vk_required_extensions,
+				       G_N_ELEMENTS (vk_required_extensions));
 	return 0;
 }
 
@@ -122,7 +130,7 @@ static inline int init_vkapp_ldevs (struct vkapp* p, GError** e)
 	g_array_insert_val (idxs, 1, p->pd_used->qfamily.pfamily.idx);
 
 	/* May be duplicates, so remove them. */
-	ge_array_traverse  (idxs, ge_arraytcb_remove_duplicates, NULL); 
+	ge_array_traverse  (idxs, ge_atcb_remove_dups, NULL); 
 
 	float prio[8] = { 1.f };
 	ERET(init_vkldev_from_vkpdev (&p->ld_used, p->pd_used, (int*)idxs->data,

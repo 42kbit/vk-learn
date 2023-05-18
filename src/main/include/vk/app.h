@@ -1,5 +1,5 @@
-#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_APP_H
-#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_APP_H
+#ifndef __H_SRC_MAIN_INCLUDE_VK_APP_H
+#define __H_SRC_MAIN_INCLUDE_VK_APP_H
 
 #include <GLFW/glfw3.h>
 #include <vk/ldev.h>
@@ -38,4 +38,4 @@ gint init_vkapp (struct vkapp** dst, GError** e);
     
 void term_vkapp (struct vkapp* p, GError** e);
 
-#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_APP_H */
+#endif /* __H_SRC_MAIN_INCLUDE_VK_APP_H */

@@ -1,5 +1,5 @@
-#ifndef __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_QUEUE_H
-#define __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_QUEUE_H
+#ifndef __H_SRC_MAIN_INCLUDE_VK_QUEUE_H
+#define __H_SRC_MAIN_INCLUDE_VK_QUEUE_H
 
 #include <vk/ldev.h>
 
@@ -17,4 +17,4 @@ static inline int get_vkqueue_from_vkldev (struct vkqueue* dst,
 	return 0;
 }
 
-#endif /* __H_SRC_5_WINDOW_SURFACE_INCLUDE_VK_QUEUE_H */
+#endif /* __H_SRC_MAIN_INCLUDE_VK_QUEUE_H */

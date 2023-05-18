@@ -1,3 +1,4 @@
+#include <vk/pdev.h>
 #include <vk/ldev.h>
 #include <ztarray.h>
 
@@ -28,11 +29,13 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 		.queueCreateInfoCount = nqueues,
 		.pEnabledFeatures = &pdev_features,
 #ifndef __VK_VLAYERS_NEEDED
-		.enabledLayerCount = 0
+		.enabledLayerCount = 0,
 #else
 		.ppEnabledLayerNames = vkapp_required_vlayers,
-		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers)
+		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers),
 #endif
+		.ppEnabledExtensionNames = required_device_exts, /* Already tested */
+		.enabledExtensionCount = count_ztarray_len ((void**)required_device_exts)
 	};
 	
 	result = vkCreateDevice (pdev->pdev, &ldev_create_info, NULL, &dst->ldev);

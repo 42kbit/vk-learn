@@ -1,29 +1,27 @@
 #include <glib.h>
+#include <glibext/glibext.h>
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
-GArray*
-vk_get_required_ext (void)
+GArray* vk_get_required_ext (const char * const * exts, guint nexts)
 {
 	GArray* p;
 	const char** glfw_exts;
-	const char * const debug_ext = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	guint glfw_n;
-	guint nexts;
 
 	glfw_exts = glfwGetRequiredInstanceExtensions (&glfw_n);
-	nexts = glfw_n;
+	
+	const guint exts_total = glfw_n + nexts;
+	
+	if (G_UNLIKELY (exts_total == 0)) {
+		return NULL;
+	}
 
-#ifdef DEBUG
-	nexts += 1; /* VK_EXT_DEBUG_UTILS_EXTENSION_NAME */
-#endif
-
-	p = g_array_sized_new (FALSE, TRUE, sizeof (const char*), nexts);
+	p = g_array_sized_new (FALSE, TRUE, sizeof (const char*), exts_total);
 	g_array_append_vals (p, glfw_exts, glfw_n);
+	g_array_append_vals (p, exts, nexts);
 
-#ifdef DEBUG
-	g_array_append_val  (p, debug_ext);
-#endif
+	ge_array_traverse (p, ge_atcb_remove_dups, NULL);
 	return p;
 }
 

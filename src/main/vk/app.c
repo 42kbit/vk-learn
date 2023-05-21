@@ -204,11 +204,11 @@ int init_vkapp (struct vkapp** dst, GError** e)
 
 static inline void __term_vkmessenger_if_debug (struct vkapp* p)
 {
-	if (!IS_DEFINED (DEBUG))
-		return;
+#ifdef DEBUG
 	VkResult result;
 	result = term_vkmessenger (&p->messenger, NULL);
 	g_assert (result == VK_SUCCESS);
+#endif /* DEBUG */
 }
 
 void term_vkapp (struct vkapp* p, GError** e)

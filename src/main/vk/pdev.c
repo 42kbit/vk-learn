@@ -39,8 +39,8 @@ static int __init_vkpdev_gfamily (struct vkpdev* dst)
 }
 
 static int __init_vkpdev_pfamily (struct vkpdev* dst,
-				 	 struct vkinstance* _instance,
-					 struct vksurface_khr* _surface)
+				  struct vkinstance* _instance,
+				  struct vksurface_khr* _surface)
 {
 	VkResult result = VK_SUCCESS;
 	VkBool32 is_suitable = VK_FALSE;
@@ -67,8 +67,8 @@ static int __init_vkpdev_pfamily (struct vkpdev* dst,
 }
 
 static int __init_vkpdev_queues (struct vkpdev* dst,
-				 	struct vkinstance* _instance,
-					struct vksurface_khr* _surface)
+				 struct vkinstance* _instance,
+				 struct vksurface_khr* _surface)
 {
 	guint qfamily_props_cnt = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties (dst->pdev, &qfamily_props_cnt, NULL);
@@ -116,9 +116,6 @@ int __get_vkpdevs_from_VkInstance (GArray** dst, VkInstance instance)
 		struct vkpdev* dst = &g_array_index (physdevs, struct vkpdev, i);
 		VkPhysicalDevice src = tmp[i];
 		dst->pdev = src;
-		dst->eprops = NULL;
-		initopt_vkq_gfamily (&dst->qfamily.gfamily);
-		initopt_vkq_pfamily (&dst->qfamily.pfamily);
 	}
 
 	g_array_set_size (physdevs, physdevs_cnt);
@@ -135,7 +132,12 @@ int init_vkpdevs (GArray** dst, struct vkinstance* instance,
 	
 	for (guint i = 0; i < pdevs->len; i++) {
 		struct vkpdev* iter = &g_array_index (pdevs, struct vkpdev, i);
-		ERET (__init_vkpdev_queues (iter, instance, surface));
+
+		iter->eprops = NULL;
+		initopt_vkq_gfamily (&iter->qfamily.gfamily);
+		initopt_vkq_pfamily (&iter->qfamily.pfamily);
+
+		__init_vkpdev_queues (iter, instance, surface);
 	}
 	return 0;
 }
@@ -162,3 +164,6 @@ gboolean vkpdev_has_ext (struct vkpdev* p, const char* ext)
 	}
 	return FALSE;
 }
+
+#warning TODO: some slightly different physical device pick, because device might not have some features, \
+	so structure needs some varying data somehow. Homework: figure this out.

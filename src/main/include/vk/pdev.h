@@ -22,6 +22,9 @@ struct vkpdev {
 		} pfamily;
 	} qfamily;
 	GArray* eprops; /* VkExtensionProperties */
+	
+	struct vkinstaince*   instance;
+	struct vksurface_khr* surface;
 };
 
 extern const char * const required_device_exts[];

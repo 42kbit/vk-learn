@@ -1,8 +1,8 @@
 #include <vulkan/vulkan.h>
 #include <vk/pdev.h>
 
-#include <vk/common.h>
 #include <vk/defs.h>
+#include <vk/surface.h>
 
 static int __vkpdev_load_eprops (struct vkpdev* p)
 {
@@ -78,8 +78,8 @@ static int __init_vkpdev_queues (struct vkpdev* dst,
 						  (VkQueueFamilyProperties*) dst->qfamily.props->data);
 	g_array_set_size (dst->qfamily.props, qfamily_props_cnt);
 	
-	ERET(__init_vkpdev_gfamily (dst));
-	ERET(__init_vkpdev_pfamily (dst, _instance, _surface));
+	__init_vkpdev_gfamily (dst);
+	__init_vkpdev_pfamily (dst, _instance, _surface);
 
 	return 0;
 }
@@ -127,7 +127,7 @@ int __get_vkpdevs_from_VkInstance (GArray** dst, VkInstance instance)
 int init_vkpdevs (GArray** dst, struct vkinstance* instance,
 		  struct vksurface_khr* surface)
 {
-	ERET (__get_vkpdevs_from_VkInstance (dst, vkinstance_core (instance)));
+	GE_ERET (__get_vkpdevs_from_VkInstance (dst, vkinstance_core (instance)));
 	GArray* pdevs = *dst;
 	
 	for (guint i = 0; i < pdevs->len; i++) {
@@ -164,6 +164,3 @@ gboolean vkpdev_has_ext (struct vkpdev* p, const char* ext)
 	}
 	return FALSE;
 }
-
-#warning TODO: some slightly different physical device pick, because device might not have some features, \
-	so structure needs some varying data somehow. Homework: figure this out.

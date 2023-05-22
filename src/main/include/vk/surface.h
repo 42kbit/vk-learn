@@ -6,8 +6,7 @@
 #include <vk/instance.h>
 
 struct vksurface_khr {
-	VkSurfaceKHR surface;
-
+	VkSurfaceKHR core;
 	GLFWwindow* win;
 	struct vkinstance* instance;
 	const VkAllocationCallbacks* callbacks;
@@ -15,29 +14,14 @@ struct vksurface_khr {
 
 static inline VkSurfaceKHR vksurface_khr_core (struct vksurface_khr* p)
 {
-	return p->surface;
+	return p->core;
 }
 
-static inline VkResult init_vksurface_khr (struct vksurface_khr* dst,
-					   struct vkinstance* _instance,
-					   GLFWwindow* win,
-					   const VkAllocationCallbacks* cb)
-{
-	VkInstance instance = vkinstance_core (_instance);
-	
-	dst->win = win;
-	dst->callbacks = cb;
-	dst->instance = _instance;
+VkResult init_vksurface_khr (struct vksurface_khr* dst,
+			     struct vkinstance* _instance,
+			     GLFWwindow* win,
+			     const VkAllocationCallbacks* cb);
 
-	return glfwCreateWindowSurface (instance, win, cb, &dst->surface);
-}
-
-static inline void term_vksurface_khr (struct vksurface_khr* p)
-{
-	VkInstance instance = vkinstance_core (p->instance);
-	VkSurfaceKHR surface = vksurface_khr_core (p);
-
-	vkDestroySurfaceKHR (instance, surface, p->callbacks);
-}
+void term_vksurface_khr (struct vksurface_khr* p);
 
 #endif /* __H_SRC_MAIN_INCLUDE_VK_SURFACE_H */

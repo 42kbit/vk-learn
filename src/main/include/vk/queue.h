@@ -13,7 +13,7 @@ static inline int get_vkqueue_from_vkldev (struct vkqueue* dst,
 			     		   int queue_family_idx,
 			     		   int queue_idx)
 {
-	vkGetDeviceQueue (ldev->ldev, queue_family_idx, queue_idx, &dst->queue);
+	vkGetDeviceQueue (ldev->core, queue_family_idx, queue_idx, &dst->queue);
 	return 0;
 }
 

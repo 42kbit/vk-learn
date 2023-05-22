@@ -4,14 +4,16 @@
 #include <vk/pdev.h>
 
 struct vkldev {
-	VkDevice ldev;
+	VkDevice core;
 };
 
 int init_vkldev_from_vkpdev (struct vkldev* dst,
 			     struct vkpdev* pdev,
 			     int* 	    idxs, /* Array of indexes, identifying queues */
 			     float*	    prios,/* Array of priorities, with respect to idxs array */
-			     guint          nidxs /* Number of elements in both arrays (should be equal) */);
+			     guint          nidxs /* Number of elements in both arrays (should be equal) */,
+			     const char * const *   exts_enable,
+			     guint nexts);
 
 int term_vkldev (struct vkldev* p);
 

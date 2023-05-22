@@ -8,7 +8,9 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 			     struct vkpdev* pdev,
 			     int* 	    idxs,    /* Array of indexes, identifying queues */
 			     float*	    prios,   /* Array of priorities, with respect to idxs array */
-			     guint          nqueues  /* Number of elements in both arrays (should be equal) */)
+			     guint          nqueues  /* Number of elements in both arrays (should be equal) */,
+			     const char * const * exts,
+			     guint nexts)
 {
 	g_assert (nqueues <= VK_MAX_QUEUES_PER_LDEV);
 
@@ -34,11 +36,11 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 		.ppEnabledLayerNames = vkapp_required_vlayers,
 		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers),
 #endif
-		.ppEnabledExtensionNames = required_device_exts, /* Already tested */
-		.enabledExtensionCount = count_ztarray_len ((void**)required_device_exts)
+		.ppEnabledExtensionNames = exts, /* Already tested */
+		.enabledExtensionCount = nexts 
 	};
 	
-	result = vkCreateDevice (pdev->pdev, &ldev_create_info, NULL, &dst->ldev);
+	result = vkCreateDevice (pdev->pdev, &ldev_create_info, NULL, &dst->core);
 	g_assert (result == VK_SUCCESS);
 	if (result != VK_SUCCESS)
 		return -EINVAL;
@@ -46,6 +48,6 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 }
 
 int term_vkldev (struct vkldev* p) {
-	vkDestroyDevice (p->ldev, NULL);
+	vkDestroyDevice (p->core, NULL);
 	return 0;
 }

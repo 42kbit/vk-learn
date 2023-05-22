@@ -1,5 +1,5 @@
-#ifndef __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_MACRO_H
-#define __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_MACRO_H
+#ifndef __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GEMACRO_H
+#define __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GEMACRO_H
 
 /* Variable copy - a shortcut to write this:
  * VCOPY (sn, struct very_long_struct_name*, _p);
@@ -32,4 +32,4 @@ G_STMT_START {						\
 		return __retval;			\
 } G_STMT_END
 
-#endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_MACRO_H */
+#endif /* __H_SRC_GLIBEXT_INCLUDE_GLIBEXT_GEMACRO_H */

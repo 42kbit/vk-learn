@@ -7,7 +7,6 @@
 #include <vk/instance.h>
 #include <vk/surface.h>
 #include <vk/messenger.h>
-#include <vk/common.h>
 #include <vk/defs.h>
 #include <vk/gets.h>
 
@@ -16,10 +15,14 @@
 
 static struct vkapp __vkapp; /* Shall not be accessed directly */
 
-const char * const vk_required_extensions[] = {
+static const char * const vk_required_extensions[] = {
 #ifdef DEBUG
 	VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 #endif
+};
+
+static const char * const vk_required_ldev_extensions [] = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 static int init_vkapp_exts (struct vkapp* p, GError** e)
@@ -100,10 +103,25 @@ static int init_vkapp_instance (struct vkapp* p, GError** e)
 	return 0;
 }
 
+static int vkapp_pick_suitable_pdev (struct vkapp* p)
+{
+	for (guint i = 0; i < p->pdevs->len; i++) {
+		struct vkpdev* iter = &g_array_index (p->pdevs, struct vkpdev, i);
+		int ok = vkpdev_has_exts (iter, vk_required_ldev_extensions,
+					  G_N_ELEMENTS (vk_required_ldev_extensions))
+			&& vkpdev_has_graphics (iter)
+			&& vkpdev_has_presentaion (iter)
+			&& vkpdev_has_swapchain_support (iter, &p->surface);
+		if (ok) {
+			p->pd_used = iter;
+			return 0;
+		}
+	}
+	return -ENODEV;
+}
 
 static int init_vkapp_pdevs (struct vkapp* p, GError** e)
 {
-	guint all_devs = 0;
 	int retcode;
 
 	retcode = init_vkpdevs (&p->pdevs, &p->instance, &p->surface);
@@ -112,12 +130,11 @@ static int init_vkapp_pdevs (struct vkapp* p, GError** e)
 		return -ENODEV;
 	}
 
-	retcode = get_vkpdevs_best (&p->pd_used, p->pdevs);
-
-	if (!p->pd_used) {
+	retcode = vkapp_pick_suitable_pdev (p);
+	if (retcode < 0) {
 		g_set_error (e, EVKDEFAULT, ENODEV,
 			     "Found %d Vulkan devices, but none are suitable",
-			     all_devs);
+			     p->pdevs->len);
 		return -ENODEV;
 	}
 	return 0;
@@ -133,8 +150,10 @@ static inline int init_vkapp_ldevs (struct vkapp* p, GError** e)
 	ge_array_traverse  (idxs, ge_atcb_remove_dups, NULL); 
 
 	float prio[8] = { 1.f };
-	ERET(init_vkldev_from_vkpdev (&p->ld_used, p->pd_used, (int*)idxs->data,
-				      prio, idxs->len));
+	GE_ERET(init_vkldev_from_vkpdev (&p->ld_used, p->pd_used,
+					 (int*)idxs->data, prio, idxs->len,
+					 vk_required_ldev_extensions,
+					 G_N_ELEMENTS (vk_required_ldev_extensions)));
 	g_array_free (idxs, TRUE);
 	return 0;
 }
@@ -148,7 +167,7 @@ static int __init_vkapp_queues_graphics (struct vkapp* p, GError** e)
 		return -EINVAL;
 	}
 	
-	ERET (get_vkqueue_from_vkldev (&p->gqueue, &p->ld_used, gidx, 0));
+	GE_ERET (get_vkqueue_from_vkldev (&p->gqueue, &p->ld_used, gidx, 0));
 	return 0;
 }
 
@@ -161,14 +180,14 @@ static int __init_vkapp_queues_presentation (struct vkapp* p, GError** e)
 		return -EINVAL;
 	}
 	
-	ERET (get_vkqueue_from_vkldev (&p->pqueue, &p->ld_used, gidx, 0));
+	GE_ERET (get_vkqueue_from_vkldev (&p->pqueue, &p->ld_used, gidx, 0));
 	return 0;
 }
 
 static int init_vkapp_queues (struct vkapp* p, GError** e)
 {
-	ERET (__init_vkapp_queues_graphics (p, e));
-	ERET (__init_vkapp_queues_presentation (p, e));
+	GE_ERET (__init_vkapp_queues_graphics (p, e));
+	GE_ERET (__init_vkapp_queues_presentation (p, e));
 	return 0;
 }
 
@@ -184,21 +203,33 @@ static int init_vkapp_surface (struct vkapp* p, GError** e)
 	return 0;
 }
 
+static int init_vkapp_swapchain (struct vkapp* p, GError** e)
+{
+	int retcode;
+	retcode = init_vkswapchain_khr (&p->swapchain, p->pd_used, &p->ld_used, &p->surface);
+	if (retcode < 0) {
+		g_set_error (e, EVKDEFAULT, ENODEV, "Failed to init Vulkan swapchain, retcode: %d", retcode);
+		return -1;
+	}
+	return 0;
+}
+
 int init_vkapp (struct vkapp** dst, GError** e)
 {
 	struct vkapp* p = &__vkapp;
 	*dst = p;
-	ZEROTYPE (p);
+	GE_ZEROTYPE (p);
 
-	ERET (init_vkapp_glfw	     (p, e));
-	ERET (init_vkapp_glfw_window (p, e));
-	ERET (init_vkapp_exts	     (p, e));
-	ERET (init_vkapp_vlayers  (p, e));
-	ERET (init_vkapp_instance (p, e));
-	ERET (init_vkapp_surface  (p, e));
-	ERET (init_vkapp_pdevs    (p, e));
-	ERET (init_vkapp_ldevs    (p, e));
-	ERET (init_vkapp_queues   (p, e));
+	GE_ERET (init_vkapp_glfw	 (p, e));
+	GE_ERET (init_vkapp_glfw_window  (p, e));
+	GE_ERET (init_vkapp_exts	 (p, e));
+	GE_ERET (init_vkapp_vlayers  	 (p, e));
+	GE_ERET (init_vkapp_instance 	 (p, e));
+	GE_ERET (init_vkapp_surface  	 (p, e));
+	GE_ERET (init_vkapp_pdevs    	 (p, e));
+	GE_ERET (init_vkapp_ldevs    	 (p, e));
+	GE_ERET (init_vkapp_queues   	 (p, e));
+	GE_ERET (init_vkapp_swapchain	 (p, e));
 	return 0;
 }
 
@@ -220,8 +251,9 @@ void term_vkapp (struct vkapp* p, GError** e)
 	if (IS_DEFINED (__VK_VLAYERS_NEEDED)) {
 		g_array_free (p->vlayers, TRUE);
 	}
-	term_vkpdevs (p->pdevs);
+	term_vkswapchain_khr (&p->swapchain);
 	term_vkldev  (&p->ld_used);
+	term_vkpdevs (p->pdevs);
 	term_vksurface_khr (&p->surface);
 
 	term_vkinstance (&p->instance);

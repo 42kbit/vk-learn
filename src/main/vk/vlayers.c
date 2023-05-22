@@ -1,9 +1,9 @@
 #include <glib.h>
+#include <glibext/glibext.h>
 #include <vulkan/vulkan.h>
 
 #include <vk/vlayers.h>
 
-#include <vk/common.h>
 #include <vk/defs.h>
 
 #ifdef __VK_VLAYERS_NEEDED
@@ -48,7 +48,7 @@ gboolean __g_array_cmp_VkLayerProperties_name (GArray*  arr,
 				    	       guint    idx,
 				    	       gpointer _udata)
 {
-	VCOPY (udata, struct __cmp_VkLayerProperties_name*, _udata);
+	GE_VCOPY (udata, struct __cmp_VkLayerProperties_name*, _udata);
 	VkLayerProperties* current = &g_array_index (arr, VkLayerProperties, idx);
 
 	int cmpres = strcmp (udata->search_for, current->layerName);

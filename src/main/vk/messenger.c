@@ -1,6 +1,5 @@
 #include <vk/messenger.h>
 
-#include <vk/common.h>
 #include <vk/defs.h>
 
 #ifdef DEBUG

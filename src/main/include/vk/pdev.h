@@ -4,7 +4,8 @@
 #include <vulkan/vulkan.h>
 #include <glibext/glibext.h>
 #include <vk/instance.h>
-#include <vk/surface.h>
+
+struct vksurface_khr;
 
 struct vkpdev {
 	VkPhysicalDevice pdev;
@@ -22,28 +23,38 @@ struct vkpdev {
 		} pfamily;
 	} qfamily;
 	GArray* eprops; /* VkExtensionProperties */
-	
-	struct vkinstaince*   instance;
-	struct vksurface_khr* surface;
 };
-
-extern const char * const required_device_exts[];
 
 GE_GEN_OPT (struct gfamily, vkq_gfamily, idx, opt);
 GE_GEN_OPT (struct pfamily, vkq_pfamily, idx, opt);
 
 gboolean vkpdev_has_ext (struct vkpdev* p, const char* ext);
 
-int get_vkpdevs_best (struct vkpdev**, GArray*);
+int get_vkpdevs_best (struct vkpdev** dst,
+		      GArray* devs,
+		      struct vksurface_khr* surface);
 
 int init_vkpdevs (GArray** dst, struct vkinstance* instance,
 		  struct vksurface_khr* surface);
 
 void term_vkpdevs (GArray* vkpdevs);
 
+int vkpdev_has_exts (struct vkpdev* p, const char * const * exts, guint nexts);
+int vkpdev_has_swapchain_support (struct vkpdev* _p, struct vksurface_khr* _surface);
+
 static inline VkPhysicalDevice vkpdev_core (struct vkpdev* p)
 {
 	return p->pdev;
+}
+
+static inline int vkpdev_has_graphics (struct vkpdev* p)
+{
+	return getopt_vkq_gfamily (&p->qfamily.gfamily);
+}
+
+static inline int vkpdev_has_presentaion (struct vkpdev* p)
+{
+	return getopt_vkq_pfamily (&p->qfamily.pfamily);
 }
 
 #define __gen_vkpdev_family_idx_getter(fp)						\

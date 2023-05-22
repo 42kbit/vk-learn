@@ -9,6 +9,8 @@
 #include <vk/surface.h>
 #include <vk/messenger.h>
 
+#include <vk/swapchain.h>
+
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
 	GLFWwindow*		glfw_window;
@@ -25,6 +27,8 @@ struct vkapp {
 	struct vkqueue		pqueue;   /* Presentation queue */
 	
 	struct vksurface_khr	surface;
+	
+	struct vkswapchain_khr	swapchain;
 
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			vlayers;  /* struct vkvlayer* */

@@ -3,15 +3,25 @@
 
 #include <vulkan/vulkan.h>
 #include <glib.h>
+
+#include <vk/pdev.h>
 #include <vk/ldev.h>
+#include <vk/surface.h>
+#include <vk/surface_caps.h>
 
 struct vkpdev;
 struct vksurface_khr;
 
 struct vkswapchain_khr {
-	struct vkldev* ldev;
-
 	VkSwapchainKHR core;
+	GArray* images; /* VkImage */
+	GArray* image_views;
+
+	struct vkpdev* pdev;
+	struct vkldev* ldev;
+	struct vksurface_khr* surface;
+
+	struct vksurface_caps_khr surface_caps;
 	
 	VkSurfaceFormatKHR sfmt;
 	VkPresentModeKHR   pmode;
@@ -28,10 +38,6 @@ int init_vkswapchain_khr (struct vkswapchain_khr* dst,
 			  struct vkldev* ldev,
 			  struct vksurface_khr* surface);
 
-static inline int term_vkswapchain_khr (struct vkswapchain_khr* p)
-{
-	vkDestroySwapchainKHR (p->ldev->core, p->core, NULL);
-	return 0;
-}
+int term_vkswapchain_khr (struct vkswapchain_khr* p);
 
 #endif /* __H_SRC_MAIN_INCLUDE_VK_SWAPCHAIN_H */

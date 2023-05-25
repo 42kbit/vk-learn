@@ -111,36 +111,126 @@ static int __init_swapchain_core (struct vkswapchain_khr* dst,
 	return 0;
 }
 
+static int __init_swapchain_images (struct vkswapchain_khr* dst)
+{
+	VkResult res;
+	guint32 nimgs;
+	res = vkGetSwapchainImagesKHR (dst->ldev->core, dst->core, &nimgs, NULL);
+	if (res != VK_SUCCESS)
+		return -1;
+	dst->images = g_array_sized_new (FALSE, FALSE, sizeof (VkImage), nimgs);
+	res = vkGetSwapchainImagesKHR (dst->ldev->core, dst->core,
+				       &nimgs, (VkImage*)dst->images->data);
+	if (res != VK_SUCCESS)
+		return -1;
+	return 0;
+}
+
+static int __init_swapchain_image_views (struct vkswapchain_khr* dst)
+{
+	VkResult result = VK_SUCCESS;
+	guint32 nimgs = dst->images->len;
+
+	dst->image_views = g_array_sized_new (FALSE, FALSE, sizeof (VkImageView), nimgs);
+	g_array_set_size (dst->image_views, nimgs);
+
+	for (guint i = 0; i < dst->images->len; i++) {
+		VkImageViewCreateInfo create_info = {
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = dst->sfmt.format,
+			.components = {
+				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.a = VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+		
+		result = vkCreateImageView (dst->ldev->core, &create_info,
+					    NULL, &g_array_index (dst->image_views, VkImageView, i));
+		if (result != VK_SUCCESS)
+			return -1;
+	}
+	return 0;
+}
+
+static int __term_swapchain_image_views (struct vkswapchain_khr* dst)
+{
+	for (guint i = 0; i < dst->image_views->len; i++) {
+		VkImageView view = g_array_index (dst->image_views, VkImageView, i);
+		vkDestroyImageView (dst->ldev->core, view, NULL);
+	}
+	return 0;
+}
+
+static int __term_swapchain_images (struct vkswapchain_khr* dst)
+{
+	for (guint i = 0; i < dst->images->len; i++) {
+		VkImage img = g_array_index (dst->images, VkImage, i);
+		vkDestroyImage (dst->ldev->core, img, NULL);
+	}
+	return 0;
+}
+
 int init_vkswapchain_khr (struct vkswapchain_khr* dst,
 			  struct vkpdev* pdev,
 			  struct vkldev* ldev,
 			  struct vksurface_khr* surface)
 {
 	GE_ZEROTYPE (dst);
-	dst->ldev = ldev;
 
-	struct vksurface_caps_khr caps;
+	dst->ldev = ldev;
+	dst->pdev = pdev;
+	dst->surface = surface;
+
 	int ecode = 0;
 	/* Maybe wastefull to call malloc for 1 function pass, but i doubt that
 	 * init_vkswapchain_khr will be called more than one (maybe twice). */
-	init_vksurface_caps_khr (&caps, pdev, surface);
-	if (__swapchain_pick_format (dst, &caps) < 0) {
+	init_vksurface_caps_khr (&dst->surface_caps, pdev, surface);
+	struct vksurface_caps_khr* caps = &dst->surface_caps;
+	if (__swapchain_pick_format (dst, caps) < 0) {
 		ecode = -EINVAL;
 		goto free_exit;
 	}
-	if (__swapchain_pick_pmode (dst, &caps) < 0) {
+	if (__swapchain_pick_pmode (dst, caps) < 0) {
 		ecode = -EINVAL;
 		goto free_exit;
 	}
-	if (__swapchain_pick_glfw_fbsize (dst, surface->win, &caps) < 0) {
+	if (__swapchain_pick_glfw_fbsize (dst, surface->win, caps) < 0) {
 		ecode = -EINVAL;
 		goto free_exit;
 	}
-	if (__init_swapchain_core (dst, pdev, ldev, surface, &caps) < 0) {
+	if (__init_swapchain_core (dst, pdev, ldev, surface, caps) < 0) {
+		ecode = -EINVAL;
+		goto free_exit;
+	}
+	if (__init_swapchain_images (dst) != 0) {
+		ecode = -EINVAL;
+		goto free_exit;
+	}
+	if (__init_swapchain_image_views (dst) != 0) {
 		ecode = -EINVAL;
 		goto free_exit;
 	}
 free_exit:;
-	term_vksurface_caps_khr (&caps);
 	return ecode;
+}
+
+int term_vkswapchain_khr (struct vkswapchain_khr* p)
+{
+	vkDestroySwapchainKHR (p->ldev->core, p->core, NULL);
+	term_vksurface_caps_khr (&p->surface_caps);
+	g_array_free (p->images, TRUE);
+
+	__term_swapchain_image_views (p);
+	__term_swapchain_images (p);
+
+	return 0;
 }

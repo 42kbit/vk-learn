@@ -46,4 +46,4 @@ $(d): $(TGTS_$(d))
 $(TGTS_$(d)): $(GLIBEXT_LIB) $(CGLM_LIB) $(GLIB_LIB) $(GLFW_LIB) $(OBJS_$(d))
 	$(L_LINK)
 
-SUBDIRS_$(d)	:=vk
+SUBDIRS_$(d)	:=vk shaders

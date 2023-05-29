@@ -15,6 +15,12 @@
 #include <vk/pipeline_layout.h>
 #include <vk/pipeline.h>
 
+#include <vk/cmdpool.h>
+#include <vk/cmdbuf.h>
+
+#include <vk/semaphore.h>
+#include <vk/fence.h>
+
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
 	GLFWwindow*		glfw_window;
@@ -39,6 +45,14 @@ struct vkapp {
 	struct vkpipeline	 pipeline;
 	
 	GArray* 		framebuffers;
+	
+	struct vkcmdpool	cmdpool;
+	struct vkcmdbuf		cmdbuf;
+	
+	struct vksemaphore	image_avail_bsem;
+	struct vksemaphore	render_finished_bsem;
+	struct vkfence		flight_fnc;
+	
 
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			vlayers;  /* struct vkvlayer* */
@@ -48,8 +62,10 @@ struct vkapp {
 #endif
 };
 
-gint init_vkapp (struct vkapp** dst, GError** e);
+int init_vkapp (struct vkapp** dst, GError** e);
     
 void term_vkapp (struct vkapp* p, GError** e);
+
+int vkapp_enter_mainloop (struct vkapp* p, GError** e);
 
 #endif /* __H_SRC_MAIN_INCLUDE_VK_APP_H */

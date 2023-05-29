@@ -1,17 +1,5 @@
 #include <vk/app.h>
 
-static inline void
-vkapp_enter_mainloop (struct vkapp* p, GError** e) {
-	/* Loop until the user closes the window */
-	while (!glfwWindowShouldClose(p->glfw_window))
-	{
-		/* Swap front and back buffers */
-		glfwSwapBuffers(p->glfw_window);
-
-		/* Poll for and process events */
-		glfwPollEvents();
-	}
-}
 
 int
 main(void)

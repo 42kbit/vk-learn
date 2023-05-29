@@ -239,13 +239,24 @@ static int init_vkapp_render_pass (struct vkapp* p, GError** e)
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &color_attachment_ref
 	};
+
+	VkSubpassDependency subpass_dep = {
+		.srcSubpass = VK_SUBPASS_EXTERNAL,
+		.dstSubpass = 0,
+		.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = 0,
+		.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+	};
 	
 	VkRenderPassCreateInfo render_pass_cinfo = {
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 		.attachmentCount = 1,
 		.pAttachments = &color_attachment,
 		.subpassCount = 1,
-		.pSubpasses = &subpass
+		.pSubpasses = &subpass,
+		.dependencyCount = 1,
+		.pDependencies = &subpass_dep
 	};
 
 	VkResult result;
@@ -430,7 +441,7 @@ free_exit:;
 	return ecode;
 }
 
-int init_vkapp_framebuffer (struct vkapp* p, GError** e)
+static int init_vkapp_framebuffer (struct vkapp* p, GError** e)
 {
 	p->framebuffers = g_array_sized_new (FALSE, FALSE, sizeof (VkFramebuffer),
 					     p->swapchain.image_views->len);
@@ -449,10 +460,65 @@ int init_vkapp_framebuffer (struct vkapp* p, GError** e)
 		result = vkCreateFramebuffer (p->ld_used.core, &framebuffer_cinfo,
 					      NULL, &g_array_index (p->framebuffers, VkFramebuffer, i));
 		if (result != VK_SUCCESS) {
-			g_error_set (e, EVKDEFAULT, EINVAL, "Failed to init framebuffer! VkResult: %d", result);
+			g_set_error (e, EVKDEFAULT, EINVAL, "Failed to init Vulkan framebuffer! VkResult: %d", result);
 			return -EINVAL;
 		}
 	}
+	return 0;
+}
+
+static int init_vkapp_cmdpool (struct vkapp* p, GError** e)
+{
+	VkCommandPoolCreateInfo cmdpool_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = getval_vkq_gfamily (&p->pd_used->qfamily.gfamily)
+	};
+	VkResult result = VK_SUCCESS;
+	result = vkCreateCommandPool (p->ld_used.core, &cmdpool_cinfo, NULL, &p->cmdpool.core);
+	if (result != VK_SUCCESS) {
+		g_set_error (e, EVKDEFAULT, EINVAL,
+			     "Failed to init Vulkan command buffer: VkResult: %d", result);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static int init_vkapp_cmdbuf (struct vkapp* p, GError** e)
+{
+	VkCommandBufferAllocateInfo cmdbuf_ainfo = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = p->cmdpool.core,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1
+	};
+	VkResult result = vkAllocateCommandBuffers (p->ld_used.core, &cmdbuf_ainfo, &p->cmdbuf.core);
+	if (result != VK_SUCCESS)
+		return -EINVAL;
+
+	return 0;
+}
+
+static int init_vkapp_sync (struct vkapp* p, GError** e)
+{
+	VkSemaphoreCreateInfo sem_create_info = {
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+	};
+
+	VkFenceCreateInfo fnc_create_info = {
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT
+	};
+	
+	int ok = vkCreateSemaphore (p->ld_used.core, &sem_create_info, NULL, &p->image_avail_bsem.core) == VK_SUCCESS &&
+		 vkCreateSemaphore (p->ld_used.core, &sem_create_info, NULL, &p->render_finished_bsem.core) == VK_SUCCESS &&
+		 vkCreateFence (p->ld_used.core, &fnc_create_info, NULL, &p->flight_fnc.core) == VK_SUCCESS;
+	
+	if (!ok) {
+		g_set_error (e, EVKDEFAULT, EINVAL, "Failed to init Vulkan sync mechanisms!");
+		return -EINVAL;
+	}
+
 	return 0;
 }
 
@@ -475,6 +541,9 @@ int init_vkapp (struct vkapp** dst, GError** e)
 	GE_ERET (init_vkapp_render_pass	 (p, e));
 	GE_ERET (init_vkapp_graphics_pipeline  (p, e));
 	GE_ERET (init_vkapp_framebuffer  (p, e));
+	GE_ERET (init_vkapp_cmdpool	 (p, e));
+	GE_ERET (init_vkapp_cmdbuf	 (p, e));
+	GE_ERET (init_vkapp_sync	 (p, e));
 	return 0;
 }
 
@@ -492,6 +561,12 @@ void term_vkapp (struct vkapp* p, GError** e)
 	VkResult result;
 	
 	__term_vkmessenger_if_debug (p);
+	
+	vkDestroySemaphore (p->ld_used.core, p->image_avail_bsem.core, NULL);
+	vkDestroySemaphore (p->ld_used.core, p->render_finished_bsem.core, NULL);
+	vkDestroyFence (p->ld_used.core, p->flight_fnc.core, NULL);
+	
+	vkDestroyCommandPool (p->ld_used.core, p->cmdpool.core, NULL);
 	
 	for (guint i = 0; i < p->framebuffers->len; i++) {
 		vkDestroyFramebuffer (p->ld_used.core, g_array_index (p->framebuffers, VkFramebuffer, i), NULL);
@@ -513,4 +588,139 @@ void term_vkapp (struct vkapp* p, GError** e)
 	term_vkinstance (&p->instance);
 	glfwDestroyWindow (p->glfw_window);
 	glfwTerminate();
+}
+
+static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e, guint32 fb_idx)
+{
+	VkCommandBufferBeginInfo cmdbuf_binfo = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = 0,
+		.pInheritanceInfo = NULL
+	};
+	VkResult result = vkBeginCommandBuffer (p->cmdbuf.core, &cmdbuf_binfo);
+	if (result != VK_SUCCESS) {
+		g_set_error (e, EVKDEFAULT, EINVAL,
+			     "Failed vkBeginCommandBuffer, VkResult: %d", result);
+		return -EINVAL;
+	}
+	
+	VkClearValue clear_color = {
+		.color = {
+			.float32 = {
+				0.f, 0.f, 0.f, 1.f
+			}
+		}
+	};
+	
+	VkRenderPassBeginInfo render_pass_binfo = {
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		.renderPass = p->render_pass.core,
+		.framebuffer = g_array_index (p->framebuffers, VkFramebuffer, fb_idx),
+		.renderArea = {
+			.offset = {0, 0},
+			.extent = p->swapchain.res
+		},
+		.clearValueCount = 1,
+		.pClearValues = &clear_color
+	};
+	vkCmdBeginRenderPass (p->cmdbuf.core, &render_pass_binfo, VK_SUBPASS_CONTENTS_INLINE);
+	
+	vkCmdBindPipeline (p->cmdbuf.core, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline.core);
+
+	VkViewport viewport = {
+		.x = 0.f,
+		.y = 0.f,
+		.width = p->swapchain.res.width,
+		.height = p->swapchain.res.height,
+		.minDepth = 0.f,
+		.maxDepth = 1.f
+	};
+
+	VkRect2D scissor = {
+		.offset = {0, 0},
+		.extent = p->swapchain.res
+	};
+
+	vkCmdSetViewport (p->cmdbuf.core, 0, 1, &viewport);
+	vkCmdSetScissor  (p->cmdbuf.core, 0, 1, &scissor);
+	
+	vkCmdDraw (p->cmdbuf.core, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass (p->cmdbuf.core);
+	
+	result = vkEndCommandBuffer (p->cmdbuf.core);
+	if (result != VK_SUCCESS) {
+		g_set_error (e, EVKDEFAULT, EINVAL,
+			     "Failed vkEndCommandBuffer, VkResult: %d", result);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int vkapp_draw_frame (struct vkapp* p, GError** e)
+{
+	guint32 image_idx;
+	VkResult result;
+
+	vkWaitForFences (p->ld_used.core, 1, &p->flight_fnc.core, VK_TRUE, UINT64_MAX);
+	vkResetFences (p->ld_used.core, 1, &p->flight_fnc.core);
+	result = vkAcquireNextImageKHR (p->ld_used.core, p->swapchain.core, UINT64_MAX,
+					p->image_avail_bsem.core, NULL, &image_idx);
+	g_assert (result == VK_SUCCESS); /* assert due to runtime */
+
+	vkResetCommandBuffer (p->cmdbuf.core, 0);
+	GE_ERET (vkapp_write_to_cmdbuf (p, e, image_idx));
+
+	/* Commands recorded, submit them. */
+	VkSemaphore wait_bsem[] = { p->image_avail_bsem.core };
+	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkCommandBuffer cmdbufs[] = { p->cmdbuf.core };
+	
+	VkSemaphore ping_bsem[] = { p->render_finished_bsem.core };
+
+	VkSubmitInfo submit_info = {
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = G_N_ELEMENTS (wait_bsem),
+		.pWaitSemaphores = wait_bsem,
+		.pWaitDstStageMask = wait_stages,
+		.commandBufferCount = G_N_ELEMENTS (cmdbufs),
+		.pCommandBuffers = cmdbufs,
+		.signalSemaphoreCount = G_N_ELEMENTS (ping_bsem),
+		.pSignalSemaphores = ping_bsem
+	};
+	
+	result = vkQueueSubmit (p->gqueue.core, 1, &submit_info, p->flight_fnc.core);
+	g_assert (result == VK_SUCCESS);
+	
+	VkSwapchainKHR swapchains [] = { p->swapchain.core };
+	
+	VkPresentInfoKHR present_info = {
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = ping_bsem,
+		.swapchainCount = G_N_ELEMENTS (swapchains),
+		.pSwapchains = swapchains,
+		.pImageIndices = &image_idx,
+		.pResults = NULL
+	};
+
+	vkQueuePresentKHR (p->pqueue.core, &present_info);
+
+	return 0;
+}
+
+int vkapp_enter_mainloop (struct vkapp* p, GError** e) {
+	/* Loop until the user closes the window */
+	while (!glfwWindowShouldClose(p->glfw_window))
+	{
+		/* Poll for and process events */
+		glfwPollEvents();
+
+		GE_ERET (vkapp_draw_frame (p, e));
+	}
+	vkDeviceWaitIdle (p->ld_used.core);
+
+	return 0;
 }

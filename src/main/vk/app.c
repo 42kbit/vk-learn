@@ -214,6 +214,248 @@ static int init_vkapp_swapchain (struct vkapp* p, GError** e)
 	return 0;
 }
 
+static int init_vkapp_render_pass (struct vkapp* p, GError** e)
+{
+	VkAttachmentDescription color_attachment = {
+		.format  = p->swapchain.sfmt.format,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+	};
+	
+
+	/* layout (location = 0) out vec4 out_color; */
+	VkAttachmentReference color_attachment_ref = {
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	};
+	
+	VkSubpassDescription subpass = {
+		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &color_attachment_ref
+	};
+	
+	VkRenderPassCreateInfo render_pass_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		.attachmentCount = 1,
+		.pAttachments = &color_attachment,
+		.subpassCount = 1,
+		.pSubpasses = &subpass
+	};
+
+	VkResult result;
+	result = vkCreateRenderPass (p->ld_used.core, &render_pass_cinfo, NULL, &p->render_pass.core);
+	if (result != VK_SUCCESS)
+		return -EINVAL;
+
+	return 0;
+}
+
+static int init_vkapp_graphics_pipeline (struct vkapp* p, GError** e)
+{
+	struct vkshader_module vert, frag;
+	VkResult result;
+	int ecode = 0;
+
+	init_vkshader_module_from_file (&vert, &p->ld_used, "shaders/basic_vert.spv");
+	init_vkshader_module_from_file (&frag, &p->ld_used, "shaders/basic_frag.spv");
+	
+	VkPipelineShaderStageCreateInfo vert_stage_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_VERTEX_BIT,
+		.module = vert.core,
+		.pName = "main"
+	};
+
+	VkPipelineShaderStageCreateInfo frag_stage_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+		.module = frag.core,
+		.pName = "main"
+	};
+
+	VkPipelineShaderStageCreateInfo shader_stage_cinfos[] = {
+		vert_stage_create_info,
+		frag_stage_create_info
+	};
+	
+	VkDynamicState dynamic_states[] = {
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR
+	};
+	
+	VkPipelineDynamicStateCreateInfo dynamic_state_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		.pDynamicStates = dynamic_states,
+		.dynamicStateCount = G_N_ELEMENTS (dynamic_states)
+	};
+
+	VkPipelineVertexInputStateCreateInfo vertex_input_state_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = 0,
+		.pVertexBindingDescriptions = NULL,
+		.vertexAttributeDescriptionCount = 0,
+		.pVertexAttributeDescriptions = NULL
+	};
+	
+	VkPipelineInputAssemblyStateCreateInfo input_assembly_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		.primitiveRestartEnable = VK_FALSE
+	};
+	
+	VkViewport viewport = {
+		.x = 0.f,
+		.y = 0.f,
+		.width  = p->swapchain.res.width,
+		.height = p->swapchain.res.height,
+		.minDepth = 0.f,
+		.maxDepth = 1.f
+	};
+	
+	VkRect2D scissor = {
+		.offset = {
+			.x = 0,
+			.y = 0
+		},
+		.extent = p->swapchain.res
+	};
+	
+	VkPipelineViewportStateCreateInfo viewport_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.viewportCount = 1,
+		.pViewports = &viewport,
+		.scissorCount = 1,
+		.pScissors = &scissor
+	};
+	
+	VkPipelineRasterizationStateCreateInfo raster_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.depthClampEnable = VK_FALSE,
+		.rasterizerDiscardEnable = VK_FALSE,
+		.polygonMode = VK_POLYGON_MODE_FILL,
+		.lineWidth = 1.0f,
+		.cullMode = VK_CULL_MODE_BACK_BIT,
+		.frontFace = VK_FRONT_FACE_CLOCKWISE,
+		.depthBiasEnable = VK_FALSE,
+		.depthBiasConstantFactor = 0.f,
+		.depthBiasClamp = 0.f,
+		.depthBiasSlopeFactor = 0.f
+	};
+	
+	VkPipelineMultisampleStateCreateInfo multisample_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.sampleShadingEnable = VK_FALSE,
+		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+		.minSampleShading = 1.0f,
+		.pSampleMask = NULL,
+		.alphaToCoverageEnable = VK_FALSE,
+		.alphaToOneEnable = VK_FALSE
+	};
+	
+	/* Here lies VkPipelineDepthStencilStateCreateInfo */
+	
+	VkPipelineColorBlendAttachmentState color_blend_attachment_cinfo = {
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+				  VK_COLOR_COMPONENT_G_BIT |
+				  VK_COLOR_COMPONENT_B_BIT |
+				  VK_COLOR_COMPONENT_A_BIT,
+		.blendEnable = VK_FALSE,
+		.srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+		.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+		.colorBlendOp = VK_BLEND_OP_ADD,
+		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+		.alphaBlendOp = VK_BLEND_OP_ADD
+	};
+	
+	VkPipelineColorBlendStateCreateInfo color_blend_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.logicOpEnable = VK_FALSE,
+		.logicOp = VK_LOGIC_OP_COPY,
+		.attachmentCount = 1,
+		.pAttachments = &color_blend_attachment_cinfo,
+		.blendConstants [0] = 0.f,
+		.blendConstants [1] = 0.f,
+		.blendConstants [2] = 0.f,
+		.blendConstants [3] = 0.f
+	};
+	
+	VkPipelineLayout pipeline_layout;
+	VkPipelineLayoutCreateInfo pipeline_layout_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 0,
+		.pSetLayouts = NULL,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = NULL
+	};
+	
+	result = vkCreatePipelineLayout (p->ld_used.core, &pipeline_layout_cinfo, NULL, &p->pipeline_layout.core);
+	if (result != VK_SUCCESS) {
+		ecode = -EINVAL;
+		goto free_exit;
+	}
+	
+	VkGraphicsPipelineCreateInfo pipeline_cinfo = {
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.stageCount = G_N_ELEMENTS (shader_stage_cinfos),
+		.pStages = shader_stage_cinfos,
+		.pVertexInputState = &vertex_input_state_cinfo,
+		.pInputAssemblyState = &input_assembly_cinfo,
+		.pViewportState = &viewport_cinfo,
+		.pRasterizationState = &raster_cinfo,
+		.pMultisampleState = &multisample_cinfo,
+		.pDepthStencilState = NULL,
+		.pColorBlendState = &color_blend_cinfo,
+		.pDynamicState = &dynamic_state_cinfo,
+		.layout = p->pipeline_layout.core,
+		.renderPass = p->render_pass.core,
+		.subpass = 0,
+		.basePipelineHandle = NULL,
+		.basePipelineIndex  = -1
+	};
+	
+	result = vkCreateGraphicsPipelines (p->ld_used.core, NULL, 1, &pipeline_cinfo,
+					    NULL, &p->pipeline.core);
+	if (result != VK_SUCCESS)
+		ecode = -EINVAL;
+free_exit:;
+	term_vkshader_module (&vert);
+	term_vkshader_module (&frag);
+	return ecode;
+}
+
+int init_vkapp_framebuffer (struct vkapp* p, GError** e)
+{
+	p->framebuffers = g_array_sized_new (FALSE, FALSE, sizeof (VkFramebuffer),
+					     p->swapchain.image_views->len);
+	g_array_set_size (p->framebuffers, p->swapchain.image_views->len);
+	for (guint i = 0; i < p->swapchain.image_views->len; i++) {
+		VkFramebufferCreateInfo framebuffer_cinfo = {
+			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			.renderPass = p->render_pass.core,
+			.attachmentCount = 1,
+			.pAttachments = &g_array_index(p->swapchain.image_views, VkImageView, i),
+			.width  = p->swapchain.res.width,
+			.height = p->swapchain.res.height,
+			.layers = 1
+		};
+		VkResult result;
+		result = vkCreateFramebuffer (p->ld_used.core, &framebuffer_cinfo,
+					      NULL, &g_array_index (p->framebuffers, VkFramebuffer, i));
+		if (result != VK_SUCCESS) {
+			g_error_set (e, EVKDEFAULT, EINVAL, "Failed to init framebuffer! VkResult: %d", result);
+			return -EINVAL;
+		}
+	}
+	return 0;
+}
+
 int init_vkapp (struct vkapp** dst, GError** e)
 {
 	struct vkapp* p = &__vkapp;
@@ -230,6 +472,9 @@ int init_vkapp (struct vkapp** dst, GError** e)
 	GE_ERET (init_vkapp_ldevs    	 (p, e));
 	GE_ERET (init_vkapp_queues   	 (p, e));
 	GE_ERET (init_vkapp_swapchain	 (p, e));
+	GE_ERET (init_vkapp_render_pass	 (p, e));
+	GE_ERET (init_vkapp_graphics_pipeline  (p, e));
+	GE_ERET (init_vkapp_framebuffer  (p, e));
 	return 0;
 }
 
@@ -247,6 +492,15 @@ void term_vkapp (struct vkapp* p, GError** e)
 	VkResult result;
 	
 	__term_vkmessenger_if_debug (p);
+	
+	for (guint i = 0; i < p->framebuffers->len; i++) {
+		vkDestroyFramebuffer (p->ld_used.core, g_array_index (p->framebuffers, VkFramebuffer, i), NULL);
+	}
+	g_array_free (p->framebuffers, TRUE);
+	
+	vkDestroyPipeline (p->ld_used.core, p->pipeline.core, NULL);
+	vkDestroyPipelineLayout (p->ld_used.core, p->pipeline_layout.core, NULL);
+	vkDestroyRenderPass (p->ld_used.core, p->render_pass.core, NULL);
 
 	if (IS_DEFINED (__VK_VLAYERS_NEEDED)) {
 		g_array_free (p->vlayers, TRUE);

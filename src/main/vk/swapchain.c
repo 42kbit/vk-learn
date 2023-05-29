@@ -119,6 +119,7 @@ static int __init_swapchain_images (struct vkswapchain_khr* dst)
 	if (res != VK_SUCCESS)
 		return -1;
 	dst->images = g_array_sized_new (FALSE, FALSE, sizeof (VkImage), nimgs);
+	g_array_set_size (dst->images, nimgs);
 	res = vkGetSwapchainImagesKHR (dst->ldev->core, dst->core,
 				       &nimgs, (VkImage*)dst->images->data);
 	if (res != VK_SUCCESS)
@@ -136,6 +137,7 @@ static int __init_swapchain_image_views (struct vkswapchain_khr* dst)
 
 	for (guint i = 0; i < dst->images->len; i++) {
 		VkImageViewCreateInfo create_info = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = dst->sfmt.format,
 			.components = {
@@ -150,7 +152,8 @@ static int __init_swapchain_image_views (struct vkswapchain_khr* dst)
 				.levelCount = 1,
 				.baseArrayLayer = 0,
 				.layerCount = 1
-			}
+			},
+			.image = g_array_index (dst->images, VkImage, i)
 		};
 		
 		result = vkCreateImageView (dst->ldev->core, &create_info,
@@ -170,6 +173,7 @@ static int __term_swapchain_image_views (struct vkswapchain_khr* dst)
 	return 0;
 }
 
+/*
 static int __term_swapchain_images (struct vkswapchain_khr* dst)
 {
 	for (guint i = 0; i < dst->images->len; i++) {
@@ -178,6 +182,7 @@ static int __term_swapchain_images (struct vkswapchain_khr* dst)
 	}
 	return 0;
 }
+*/
 
 int init_vkswapchain_khr (struct vkswapchain_khr* dst,
 			  struct vkpdev* pdev,
@@ -227,10 +232,12 @@ int term_vkswapchain_khr (struct vkswapchain_khr* p)
 {
 	vkDestroySwapchainKHR (p->ldev->core, p->core, NULL);
 	term_vksurface_caps_khr (&p->surface_caps);
-	g_array_free (p->images, TRUE);
 
+	//__term_swapchain_images (p);
 	__term_swapchain_image_views (p);
-	__term_swapchain_images (p);
+
+	g_array_free (p->images, TRUE);
+	g_array_free (p->image_views, TRUE);
 
 	return 0;
 }

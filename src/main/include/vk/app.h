@@ -10,6 +10,10 @@
 #include <vk/messenger.h>
 
 #include <vk/swapchain.h>
+#include <vk/shader_module.h>
+#include <vk/render_pass.h>
+#include <vk/pipeline_layout.h>
+#include <vk/pipeline.h>
 
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
@@ -29,6 +33,12 @@ struct vkapp {
 	struct vksurface_khr	surface;
 	
 	struct vkswapchain_khr	swapchain;
+	
+	struct vkrender_pass     render_pass;
+	struct vkpipeline_layout pipeline_layout;
+	struct vkpipeline	 pipeline;
+	
+	GArray* 		framebuffers;
 
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			vlayers;  /* struct vkvlayer* */

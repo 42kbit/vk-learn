@@ -10,6 +10,7 @@ COBJS_$(d)	:=$(od)/gets.o			\
 		  $(od)/swapchain.o		\
 		  $(od)/surface.o		\
 		  $(od)/surface_caps.o		\
+		  $(od)/shader_module.o		\
 		  $(od)/app.o
 
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))

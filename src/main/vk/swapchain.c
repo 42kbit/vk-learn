@@ -3,6 +3,7 @@
 #include <vk/surface.h>
 #include <vk/surface_caps.h>
 #include <vk/swapchain.h>
+#include <vk/image.h>
 
 static int __swapchain_pick_format (struct vkswapchain_khr* dst,
 				    struct vksurface_caps_khr* caps)
@@ -111,6 +112,7 @@ static int __init_swapchain_core (struct vkswapchain_khr* dst,
 	return 0;
 }
 
+G_STATIC_ASSERT (sizeof (VkImage) == sizeof (struct vkimage));
 static int __init_swapchain_images (struct vkswapchain_khr* dst)
 {
 	VkResult res;
@@ -118,7 +120,7 @@ static int __init_swapchain_images (struct vkswapchain_khr* dst)
 	res = vkGetSwapchainImagesKHR (dst->ldev->core, dst->core, &nimgs, NULL);
 	if (res != VK_SUCCESS)
 		return -1;
-	dst->images = g_array_sized_new (FALSE, FALSE, sizeof (VkImage), nimgs);
+	dst->images = g_array_sized_new (FALSE, FALSE, sizeof (struct vkimage), nimgs);
 	g_array_set_size (dst->images, nimgs);
 	res = vkGetSwapchainImagesKHR (dst->ldev->core, dst->core,
 				       &nimgs, (VkImage*)dst->images->data);
@@ -127,12 +129,13 @@ static int __init_swapchain_images (struct vkswapchain_khr* dst)
 	return 0;
 }
 
+G_STATIC_ASSERT (sizeof (VkImageView) == sizeof (struct vkimage_view));
 static int __init_swapchain_image_views (struct vkswapchain_khr* dst)
 {
 	VkResult result = VK_SUCCESS;
 	guint32 nimgs = dst->images->len;
 
-	dst->image_views = g_array_sized_new (FALSE, FALSE, sizeof (VkImageView), nimgs);
+	dst->image_views = g_array_sized_new (FALSE, FALSE, sizeof (struct vkimage_view), nimgs);
 	g_array_set_size (dst->image_views, nimgs);
 
 	for (guint i = 0; i < dst->images->len; i++) {
@@ -153,11 +156,11 @@ static int __init_swapchain_image_views (struct vkswapchain_khr* dst)
 				.baseArrayLayer = 0,
 				.layerCount = 1
 			},
-			.image = g_array_index (dst->images, VkImage, i)
+			.image = g_array_index (dst->images, struct vkimage, i).core
 		};
 		
 		result = vkCreateImageView (dst->ldev->core, &create_info,
-					    NULL, &g_array_index (dst->image_views, VkImageView, i));
+					    NULL, &g_array_index (dst->image_views, struct vkimage_view, i).core);
 		if (result != VK_SUCCESS)
 			return -1;
 	}

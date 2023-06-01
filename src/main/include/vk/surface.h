@@ -22,6 +22,9 @@ VkResult init_vksurface_khr (struct vksurface_khr* dst,
 			     GLFWwindow* win,
 			     const VkAllocationCallbacks* cb);
 
-void term_vksurface_khr (struct vksurface_khr* p);
+static inline void term_vksurface_khr (struct vksurface_khr* p)
+{
+	vkDestroySurfaceKHR (p->instance->core, p->core, p->callbacks);
+}
 
 #endif /* __H_SRC_MAIN_INCLUDE_VK_SURFACE_H */

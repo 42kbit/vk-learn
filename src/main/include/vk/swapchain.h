@@ -9,13 +9,13 @@
 #include <vk/surface.h>
 #include <vk/surface_caps.h>
 
-struct vkpdev;
-struct vksurface_khr;
+#include <vk/image.h>
+#include <vk/image_view.h>
 
 struct vkswapchain_khr {
 	VkSwapchainKHR core;
-	GArray* images; /* VkImage */
-	GArray* image_views;
+	GArray* images; /* struct vkimage */
+	GArray* image_views; /* struct vkimage_view */
 
 	struct vkpdev* pdev;
 	struct vkldev* ldev;

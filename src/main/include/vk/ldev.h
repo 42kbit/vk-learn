@@ -13,7 +13,9 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 			     float*	    prios,/* Array of priorities, with respect to idxs array */
 			     guint          nidxs /* Number of elements in both arrays (should be equal) */,
 			     const char * const *   exts_enable,
-			     guint nexts);
+			     guint nexts,
+			     const char * const * vlayers,
+			     guint nvlayers);
 
 int term_vkldev (struct vkldev* p);
 

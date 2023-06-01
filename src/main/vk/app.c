@@ -15,16 +15,27 @@
 
 static struct vkapp __vkapp; /* Shall not be accessed directly */
 
+/* VkInstance extensions, requred for this vulkan application. */
 static const char * const vk_required_extensions[] = {
 #ifdef DEBUG
 	VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 #endif
 };
 
+static const char* vkapp_required_vlayers[] = {
+#ifdef __VK_VLAYERS_NEEDED
+	"VK_LAYER_KHRONOS_validation",
+#endif
+};
+
+/* VkDevice extensions, required by this vulkan application. */
 static const char * const vk_required_ldev_extensions [] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+/* Gets GLFW extensions, adds to them extensions from params, then removes
+ * duplicates.
+ */
 static int init_vkapp_exts (struct vkapp* p, GError** e)
 {
 	p->exts = vk_get_required_ext (vk_required_extensions,
@@ -32,6 +43,7 @@ static int init_vkapp_exts (struct vkapp* p, GError** e)
 	return 0;
 }
 
+/* Inits application relationship with GLFW library */
 static int init_vkapp_glfw (struct vkapp* p, GError** e)
 {
 	/* Initialize the library */
@@ -40,10 +52,14 @@ static int init_vkapp_glfw (struct vkapp* p, GError** e)
 	return 0;
 }
 
+/* Creates GLFWWindow Object, that makes platform agnostic 
+ * connection between application and a window.
+*/
 static int init_vkapp_glfw_window (struct vkapp* p, GError** e)
 {
 	glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint (GLFW_RESIZABLE,  GLFW_FALSE);
+	glfwWindowHint (GLFW_RESIZABLE,	 GLFW_TRUE);
 
 	p->glfw_window = glfwCreateWindow (640, 480, "Hello Vulkan!", NULL, NULL);
 	if (!p->glfw_window) {
@@ -56,6 +72,7 @@ static int init_vkapp_glfw_window (struct vkapp* p, GError** e)
 	return 0;
 }
 
+/**/
 static int init_vkapp_vlayers (struct vkapp* p, GError** e)
 {
 	if (!IS_DEFINED (__VK_VLAYERS_NEEDED)) {
@@ -66,7 +83,8 @@ static int init_vkapp_vlayers (struct vkapp* p, GError** e)
 	p->vlayers = vk_get_vlayers ();
 	const char* failed_at = NULL;
 	if (!vkvlayers_matches_name (p->vlayers,
-				    (const char**)vkapp_required_vlayers,
+				    vkapp_required_vlayers,
+				    G_N_ELEMENTS (vkapp_required_vlayers),
 				    &failed_at))
 	{
 		g_set_error (e, EVKDEFAULT, ENODEV,
@@ -90,11 +108,15 @@ static int init_vkapp_instance (struct vkapp* p, GError** e)
 	};
 
 	
-#ifdef DEBUG
-	result = init_vkinstance (&p->instance, &vk_app_info, NULL, p->exts, &p->messenger);
-#else  /* DEBUG */
-	result = init_vkinstance (&p->instance, &vk_app_info, NULL, p->exts, NULL);
-#endif /* DEBUG */
+	result = init_vkinstance (&p->instance,
+				  &vk_app_info,
+				  NULL,
+				  (const char* const *)p->exts->data,
+				  p->exts->len,
+				  vkapp_required_vlayers,
+				  G_N_ELEMENTS (vkapp_required_vlayers),
+				  &p->messenger);
+
 	if (result != VK_SUCCESS) {
 		g_set_error (e, EVKDEFAULT, EINVAL,
 			     "Failed to create vulkan insatnce, VkResult: %d", result);
@@ -150,10 +172,15 @@ static inline int init_vkapp_ldevs (struct vkapp* p, GError** e)
 	ge_array_traverse  (idxs, ge_atcb_remove_dups, NULL); 
 
 	float prio[8] = { 1.f };
-	GE_ERET(init_vkldev_from_vkpdev (&p->ld_used, p->pd_used,
-					 (int*)idxs->data, prio, idxs->len,
+	GE_ERET(init_vkldev_from_vkpdev (&p->ld_used,
+					 p->pd_used,
+					 (int*)idxs->data,
+					 prio,
+					 idxs->len,
 					 vk_required_ldev_extensions,
-					 G_N_ELEMENTS (vk_required_ldev_extensions)));
+					 G_N_ELEMENTS (vk_required_ldev_extensions),
+					 vkapp_required_vlayers,
+					 G_N_ELEMENTS (vkapp_required_vlayers)));
 	g_array_free (idxs, TRUE);
 	return 0;
 }
@@ -260,7 +287,7 @@ static int init_vkapp_render_pass (struct vkapp* p, GError** e)
 	};
 
 	VkResult result;
-	result = vkCreateRenderPass (p->ld_used.core, &render_pass_cinfo, NULL, &p->render_pass.core);
+	result = init_vkrender_pass (&p->render_pass, &p->ld_used, &render_pass_cinfo, NULL);
 	if (result != VK_SUCCESS)
 		return -EINVAL;
 
@@ -406,7 +433,7 @@ static int init_vkapp_graphics_pipeline (struct vkapp* p, GError** e)
 		.pPushConstantRanges = NULL
 	};
 	
-	result = vkCreatePipelineLayout (p->ld_used.core, &pipeline_layout_cinfo, NULL, &p->pipeline_layout.core);
+	result = init_vkpipeline_layout (&p->pipeline_layout, &p->ld_used, &pipeline_layout_cinfo, NULL);
 	if (result != VK_SUCCESS) {
 		ecode = -EINVAL;
 		goto free_exit;
@@ -431,8 +458,8 @@ static int init_vkapp_graphics_pipeline (struct vkapp* p, GError** e)
 		.basePipelineIndex  = -1
 	};
 	
-	result = vkCreateGraphicsPipelines (p->ld_used.core, NULL, 1, &pipeline_cinfo,
-					    NULL, &p->pipeline.core);
+	result = init_vkgraphics_pipeline (&p->pipeline, &p->ld_used, NULL, &pipeline_cinfo, NULL);
+	
 	if (result != VK_SUCCESS)
 		ecode = -EINVAL;
 free_exit:;
@@ -475,7 +502,7 @@ static int init_vkapp_cmdpool (struct vkapp* p, GError** e)
 		.queueFamilyIndex = getval_vkq_gfamily (&p->pd_used->qfamily.gfamily)
 	};
 	VkResult result = VK_SUCCESS;
-	result = vkCreateCommandPool (p->ld_used.core, &cmdpool_cinfo, NULL, &p->cmdpool.core);
+	result = init_vkcmdpool (&p->cmdpool, &p->ld_used, &cmdpool_cinfo, NULL);
 	if (result != VK_SUCCESS) {
 		g_set_error (e, EVKDEFAULT, EINVAL,
 			     "Failed to init Vulkan command buffer: VkResult: %d", result);
@@ -492,7 +519,7 @@ static int init_vkapp_cmdbuf (struct vkapp* p, GError** e)
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 		.commandBufferCount = 1
 	};
-	VkResult result = vkAllocateCommandBuffers (p->ld_used.core, &cmdbuf_ainfo, &p->cmdbuf.core);
+	VkResult result = init_vkcmdbuf (&p->cmdbuf, &p->ld_used, &cmdbuf_ainfo);
 	if (result != VK_SUCCESS)
 		return -EINVAL;
 
@@ -510,9 +537,9 @@ static int init_vkapp_sync (struct vkapp* p, GError** e)
 		.flags = VK_FENCE_CREATE_SIGNALED_BIT
 	};
 	
-	int ok = vkCreateSemaphore (p->ld_used.core, &sem_create_info, NULL, &p->image_avail_bsem.core) == VK_SUCCESS &&
-		 vkCreateSemaphore (p->ld_used.core, &sem_create_info, NULL, &p->render_finished_bsem.core) == VK_SUCCESS &&
-		 vkCreateFence (p->ld_used.core, &fnc_create_info, NULL, &p->flight_fnc.core) == VK_SUCCESS;
+	int ok = init_vksemaphore (&p->image_avail_bsem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
+		 init_vksemaphore (&p->render_finished_bsem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
+		 init_vkfence	  (&p->flight_fnc, &p->ld_used, &fnc_create_info, NULL) == VK_SUCCESS;
 	
 	if (!ok) {
 		g_set_error (e, EVKDEFAULT, EINVAL, "Failed to init Vulkan sync mechanisms!");
@@ -551,7 +578,7 @@ static inline void __term_vkmessenger_if_debug (struct vkapp* p)
 {
 #ifdef DEBUG
 	VkResult result;
-	result = term_vkmessenger (&p->messenger, NULL);
+	result = term_vkmessenger (&p->messenger, &p->instance, NULL);
 	g_assert (result == VK_SUCCESS);
 #endif /* DEBUG */
 }
@@ -562,20 +589,21 @@ void term_vkapp (struct vkapp* p, GError** e)
 	
 	__term_vkmessenger_if_debug (p);
 	
-	vkDestroySemaphore (p->ld_used.core, p->image_avail_bsem.core, NULL);
-	vkDestroySemaphore (p->ld_used.core, p->render_finished_bsem.core, NULL);
-	vkDestroyFence (p->ld_used.core, p->flight_fnc.core, NULL);
+	term_vksemaphore (&p->image_avail_bsem);
+	term_vksemaphore (&p->render_finished_bsem);
+	term_vkfence	 (&p->flight_fnc);
 	
-	vkDestroyCommandPool (p->ld_used.core, p->cmdpool.core, NULL);
+	term_vkcmdpool (&p->cmdpool);
 	
 	for (guint i = 0; i < p->framebuffers->len; i++) {
 		vkDestroyFramebuffer (p->ld_used.core, g_array_index (p->framebuffers, VkFramebuffer, i), NULL);
 	}
 	g_array_free (p->framebuffers, TRUE);
 	
-	vkDestroyPipeline (p->ld_used.core, p->pipeline.core, NULL);
-	vkDestroyPipelineLayout (p->ld_used.core, p->pipeline_layout.core, NULL);
-	vkDestroyRenderPass (p->ld_used.core, p->render_pass.core, NULL);
+	term_vkgraphics_pipeline (&p->pipeline);
+	term_vkpipeline_layout (&p->pipeline_layout);
+
+	term_vkrender_pass (&p->render_pass);
 
 	if (IS_DEFINED (__VK_VLAYERS_NEEDED)) {
 		g_array_free (p->vlayers, TRUE);

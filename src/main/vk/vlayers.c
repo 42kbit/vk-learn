@@ -8,11 +8,6 @@
 
 #ifdef __VK_VLAYERS_NEEDED
 
-const char* vkapp_required_vlayers[] = {
-	"VK_LAYER_KHRONOS_validation",
-	NULL
-};
-
 /* vk_get_vlayers, is valid, only and only if
    struct vkvlayers contatins only VkLayerProperties.
    else assert will drop error, and function should be rewritten.
@@ -61,13 +56,14 @@ gboolean __g_array_cmp_VkLayerProperties_name (GArray*  arr,
 
 gboolean vkvlayers_matches_name (GArray*       p,
 				 const char**  vlneeded,
+				 guint nvlayers,
 				 const char**  vlfailed_on)
 {
 	VkLayerProperties* found;
 	struct __cmp_VkLayerProperties_name args;
 
 	guint i = 0;
-	for (i = 0; vlneeded[i] != NULL; i++) {
+	for (i = 0; i < nvlayers; i++) {
 		found = NULL;
 		args.dst = &found;
 		args.search_for = vlneeded[i];

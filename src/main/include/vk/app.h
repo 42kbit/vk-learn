@@ -13,13 +13,15 @@
 #include <vk/shader_module.h>
 #include <vk/render_pass.h>
 #include <vk/pipeline_layout.h>
-#include <vk/pipeline.h>
+#include <vk/graphics_pipeline.h>
 
 #include <vk/cmdpool.h>
 #include <vk/cmdbuf.h>
 
 #include <vk/semaphore.h>
 #include <vk/fence.h>
+
+#include <vk/framebuffer.h>
 
 /* All info needed for rendeing Vulkan Application. */
 struct vkapp {
@@ -40,11 +42,11 @@ struct vkapp {
 	
 	struct vkswapchain_khr	swapchain;
 	
-	struct vkrender_pass     render_pass;
-	struct vkpipeline_layout pipeline_layout;
-	struct vkpipeline	 pipeline;
+	struct vkrender_pass     	render_pass;
+	struct vkpipeline_layout 	pipeline_layout;
+	struct vkgraphics_pipeline	pipeline;
 	
-	GArray* 		framebuffers;
+	GArray* 		framebuffers; /* struct vkframebuffer */
 	
 	struct vkcmdpool	cmdpool;
 	struct vkcmdbuf		cmdbuf;

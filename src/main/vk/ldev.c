@@ -10,7 +10,9 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 			     float*	    prios,   /* Array of priorities, with respect to idxs array */
 			     guint          nqueues  /* Number of elements in both arrays (should be equal) */,
 			     const char * const * exts,
-			     guint nexts)
+			     guint nexts,
+			     const char * const * vlayers,
+			     guint nvlayers)
 {
 	g_assert (nqueues <= VK_MAX_QUEUES_PER_LDEV);
 
@@ -33,8 +35,8 @@ int init_vkldev_from_vkpdev (struct vkldev* dst,
 #ifndef __VK_VLAYERS_NEEDED
 		.enabledLayerCount = 0,
 #else
-		.ppEnabledLayerNames = vkapp_required_vlayers,
-		.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers),
+		.ppEnabledLayerNames = vlayers,
+		.enabledLayerCount = nvlayers,
 #endif
 		.ppEnabledExtensionNames = exts, /* Already tested */
 		.enabledExtensionCount = nexts 

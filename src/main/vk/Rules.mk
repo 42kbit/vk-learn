@@ -1,18 +1,5 @@
 ASMOBJS_$(d)	:=
-COBJS_$(d)	:=$(od)/gets.o			\
-		  $(od)/vlayers.o		\
-		  $(od)/messenger.o		\
-		  $(od)/pdev.o			\
-		  $(od)/pdev_has.o		\
-		  $(od)/ldev.o			\
-		  $(od)/queue.o			\
-		  $(od)/instance.o		\
-		  $(od)/swapchain.o		\
-		  $(od)/surface.o		\
-		  $(od)/surface_caps.o		\
-		  $(od)/shader_module.o		\
-		  $(od)/app.o
-
+COBJS_$(d)	:=$(patsubst $(d)/%.c, $(od)/%.o, $(wildcard $(d)/*.c))
 TGT_BIN		:=$(TGT_BIN) $(TGTS_$(d))
 
 OBJS_$(d)	:=$(ASMOBJS_$(d)) $(COBJS_$(d))

@@ -2,17 +2,18 @@
 #include <vk/messenger.h>
 #include <isdefined.h>
 
-VkResult init_vkinstance (struct vkinstance* p,
-			  const VkApplicationInfo* info,
-			  const VkAllocationCallbacks* cbs,
-			  GArray* enable_exts,
-			  struct vkmessenger* msgr)
+VkResult __init_vkinstance (struct vkinstance* p,
+			    const VkApplicationInfo* info,
+			    const VkAllocationCallbacks* cbs,
+			    const char * const * enable_exts,
+			    guint nexts,
+			    const char * const * enable_vlayers,
+			    guint nvlayers,
+			    struct vkmessenger* msgr)
 {
 	VkResult result = 0;
 	VkDebugUtilsMessengerCreateInfoEXT dm_create_info = { 0 };
 	VkInstanceCreateInfo vk_create_info = { 0 };
-
-	p->callbacks = cbs;
 
 	if (IS_DEFINED (DEBUG)) {
 		dm_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -30,23 +31,24 @@ VkResult init_vkinstance (struct vkinstance* p,
 
 	vk_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	vk_create_info.pApplicationInfo = info;
-	vk_create_info.enabledExtensionCount = enable_exts->len;
-	vk_create_info.ppEnabledExtensionNames = (const char * const *)enable_exts->data;
+	vk_create_info.enabledExtensionCount = nexts;
+	vk_create_info.ppEnabledExtensionNames = enable_exts;
 
 	if (IS_DEFINED (__VK_VLAYERS_NEEDED)) {
-		vk_create_info.ppEnabledLayerNames = vkapp_required_vlayers;
-		vk_create_info.enabledLayerCount = count_ztarray_len ((void**)vkapp_required_vlayers);
+		vk_create_info.ppEnabledLayerNames = enable_vlayers;
+		vk_create_info.enabledLayerCount = nvlayers;
 	}
 	else {
 		vk_create_info.enabledLayerCount = 0;
 	}
 
-	if (IS_DEFINED (DEBUG))
+#ifdef DEBUG
 		vk_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&dm_create_info;
-	else
+#else
 		vk_create_info.pNext = NULL;
+#endif
 
-	result = vkCreateInstance (&vk_create_info, cbs, &p->instance);
+	result = vkCreateInstance (&vk_create_info, cbs, &p->core);
 	if (G_UNLIKELY(result != VK_SUCCESS))
 		return result;
 

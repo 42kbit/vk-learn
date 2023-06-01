@@ -21,11 +21,3 @@ VkResult init_vksurface_khr (struct vksurface_khr* dst,
 		return result;
 	return VK_SUCCESS;
 }
-
-void term_vksurface_khr (struct vksurface_khr* p)
-{
-	VkInstance instance = vkinstance_core (p->instance);
-	VkSurfaceKHR surface = vksurface_khr_core (p);
-
-	vkDestroySurfaceKHR (instance, surface, p->callbacks);
-}

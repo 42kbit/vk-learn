@@ -49,11 +49,13 @@ struct vkapp {
 	GArray* 		framebuffers; /* struct vkframebuffer */
 	
 	struct vkcmdpool	cmdpool;
-	struct vkcmdbuf		cmdbuf;
 	
-	struct vksemaphore	image_avail_bsem;
-	struct vksemaphore	render_finished_bsem;
-	struct vkfence		flight_fnc;
+	guint frames_in_flight;
+	
+	GArray* cmdbuf;		/* struct vkcmdbuf    */
+	GArray* imgavl_bsem;	/* struct vksemaphore */
+	GArray* rendered_bsem;  /* struct vksemaphore */
+	GArray* flight_fnc;     /* struct vkfence     */
 	
 
 #ifdef __VK_VLAYERS_NEEDED

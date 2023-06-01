@@ -200,14 +200,14 @@ static int __init_vkapp_queues_graphics (struct vkapp* p, GError** e)
 
 static int __init_vkapp_queues_presentation (struct vkapp* p, GError** e)
 {
-	int gidx = get_vkpdev_pfamily_idx (p->pd_used);
+	int pidx = get_vkpdev_pfamily_idx (p->pd_used);
 	
-	if (G_UNLIKELY (gidx < 0)) {
+	if (G_UNLIKELY (pidx < 0)) {
 		g_set_error (e, EVKDEFAULT, EINVAL, "Presentation queue not found!");
 		return -EINVAL;
 	}
 	
-	GE_ERET (get_vkqueue_from_vkldev (&p->pqueue, &p->ld_used, gidx, 0));
+	GE_ERET (get_vkqueue_from_vkldev (&p->pqueue, &p->ld_used, pidx, 0));
 	return 0;
 }
 
@@ -517,9 +517,10 @@ static int init_vkapp_cmdbuf (struct vkapp* p, GError** e)
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = p->cmdpool.core,
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1
+		.commandBufferCount = p->frames_in_flight
 	};
-	VkResult result = init_vkcmdbuf (&p->cmdbuf, &p->ld_used, &cmdbuf_ainfo);
+	p->cmdbuf = g_array_sized_new (FALSE, FALSE, sizeof (struct vkcmdbuf), p->frames_in_flight);
+	VkResult result = init_vkcmdbufs ((struct vkcmdbuf*)p->cmdbuf->data, &p->ld_used, &cmdbuf_ainfo);
 	if (result != VK_SUCCESS)
 		return -EINVAL;
 
@@ -537,13 +538,26 @@ static int init_vkapp_sync (struct vkapp* p, GError** e)
 		.flags = VK_FENCE_CREATE_SIGNALED_BIT
 	};
 	
-	int ok = init_vksemaphore (&p->image_avail_bsem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
-		 init_vksemaphore (&p->render_finished_bsem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
-		 init_vkfence	  (&p->flight_fnc, &p->ld_used, &fnc_create_info, NULL) == VK_SUCCESS;
-	
-	if (!ok) {
-		g_set_error (e, EVKDEFAULT, EINVAL, "Failed to init Vulkan sync mechanisms!");
-		return -EINVAL;
+	for (guint i = 0; i < p->frames_in_flight; i++) {
+		p->imgavl_bsem	 = g_array_sized_new (FALSE, FALSE, sizeof (struct vksemaphore), p->frames_in_flight);
+		p->rendered_bsem = g_array_sized_new (FALSE, FALSE, sizeof (struct vksemaphore), p->frames_in_flight);
+		p->flight_fnc 	 = g_array_sized_new (FALSE, FALSE, sizeof (struct vkfence), p->frames_in_flight);
+	}
+
+	struct vksemaphore* isem, *rsem;
+	struct vkfence *ffnc;
+	for (guint i = 0; i < p->frames_in_flight; i++) {
+		isem = &g_array_index (p->imgavl_bsem, struct vksemaphore, i);
+		rsem = &g_array_index (p->rendered_bsem, struct vksemaphore, i);
+		ffnc = &g_array_index (p->flight_fnc, struct vkfence, i);
+		int ok = init_vksemaphore (isem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
+			 init_vksemaphore (rsem, &p->ld_used, &sem_create_info, NULL) == VK_SUCCESS &&
+			 init_vkfence	  (ffnc, &p->ld_used, &fnc_create_info, NULL) == VK_SUCCESS;
+		
+		if (!ok) {
+			g_set_error (e, EVKDEFAULT, EINVAL, "Failed to init Vulkan sync mechanisms!");
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -554,6 +568,8 @@ int init_vkapp (struct vkapp** dst, GError** e)
 	struct vkapp* p = &__vkapp;
 	*dst = p;
 	GE_ZEROTYPE (p);
+
+	p->frames_in_flight = 2;
 
 	GE_ERET (init_vkapp_glfw	 (p, e));
 	GE_ERET (init_vkapp_glfw_window  (p, e));
@@ -578,7 +594,7 @@ static inline void __term_vkmessenger_if_debug (struct vkapp* p)
 {
 #ifdef DEBUG
 	VkResult result;
-	result = term_vkmessenger (&p->messenger, &p->instance, NULL);
+	result = term_vkmessenger (&p->messenger);
 	g_assert (result == VK_SUCCESS);
 #endif /* DEBUG */
 }
@@ -589,9 +605,15 @@ void term_vkapp (struct vkapp* p, GError** e)
 	
 	__term_vkmessenger_if_debug (p);
 	
-	term_vksemaphore (&p->image_avail_bsem);
-	term_vksemaphore (&p->render_finished_bsem);
-	term_vkfence	 (&p->flight_fnc);
+	for (guint i = 0; i < p->frames_in_flight; i++) {
+		term_vksemaphore (&g_array_index(p->imgavl_bsem, struct vksemaphore, i));
+		term_vksemaphore (&g_array_index(p->rendered_bsem, struct vksemaphore, i));
+		term_vkfence	 (&g_array_index(p->flight_fnc, struct vkfence, i));
+	}
+	g_array_free (p->imgavl_bsem, TRUE);
+	g_array_free (p->rendered_bsem, TRUE);
+	g_array_free (p->flight_fnc, TRUE);
+	g_array_free (p->cmdbuf, TRUE);
 	
 	term_vkcmdpool (&p->cmdpool);
 	
@@ -618,14 +640,17 @@ void term_vkapp (struct vkapp* p, GError** e)
 	glfwTerminate();
 }
 
-static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e, guint32 fb_idx)
+static guint32 current_frame = 0;
+
+static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e,
+				  struct vkcmdbuf* cmdbuf, guint32 fb_idx)
 {
 	VkCommandBufferBeginInfo cmdbuf_binfo = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.flags = 0,
 		.pInheritanceInfo = NULL
 	};
-	VkResult result = vkBeginCommandBuffer (p->cmdbuf.core, &cmdbuf_binfo);
+	VkResult result = vkBeginCommandBuffer (cmdbuf->core, &cmdbuf_binfo);
 	if (result != VK_SUCCESS) {
 		g_set_error (e, EVKDEFAULT, EINVAL,
 			     "Failed vkBeginCommandBuffer, VkResult: %d", result);
@@ -651,9 +676,9 @@ static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e, guint32 fb_idx)
 		.clearValueCount = 1,
 		.pClearValues = &clear_color
 	};
-	vkCmdBeginRenderPass (p->cmdbuf.core, &render_pass_binfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass (cmdbuf->core, &render_pass_binfo, VK_SUBPASS_CONTENTS_INLINE);
 	
-	vkCmdBindPipeline (p->cmdbuf.core, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline.core);
+	vkCmdBindPipeline (cmdbuf->core, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline.core);
 
 	VkViewport viewport = {
 		.x = 0.f,
@@ -669,14 +694,14 @@ static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e, guint32 fb_idx)
 		.extent = p->swapchain.res
 	};
 
-	vkCmdSetViewport (p->cmdbuf.core, 0, 1, &viewport);
-	vkCmdSetScissor  (p->cmdbuf.core, 0, 1, &scissor);
+	vkCmdSetViewport (cmdbuf->core, 0, 1, &viewport);
+	vkCmdSetScissor  (cmdbuf->core, 0, 1, &scissor);
 	
-	vkCmdDraw (p->cmdbuf.core, 3, 1, 0, 0);
+	vkCmdDraw (cmdbuf->core, 3, 1, 0, 0);
 
-	vkCmdEndRenderPass (p->cmdbuf.core);
+	vkCmdEndRenderPass (cmdbuf->core);
 	
-	result = vkEndCommandBuffer (p->cmdbuf.core);
+	result = vkEndCommandBuffer (cmdbuf->core);
 	if (result != VK_SUCCESS) {
 		g_set_error (e, EVKDEFAULT, EINVAL,
 			     "Failed vkEndCommandBuffer, VkResult: %d", result);
@@ -688,25 +713,30 @@ static int vkapp_write_to_cmdbuf (struct vkapp* p, GError** e, guint32 fb_idx)
 
 static int vkapp_draw_frame (struct vkapp* p, GError** e)
 {
-	guint32 image_idx;
+	guint32 image_idx = 0;
 	VkResult result;
 
-	vkWaitForFences (p->ld_used.core, 1, &p->flight_fnc.core, VK_TRUE, UINT64_MAX);
-	vkResetFences (p->ld_used.core, 1, &p->flight_fnc.core);
+	struct vksemaphore* ibsem = &g_array_index (p->imgavl_bsem, struct vksemaphore, current_frame);
+	struct vksemaphore* rbsem = &g_array_index (p->rendered_bsem, struct vksemaphore, current_frame);
+	struct vkfence* ffnc 	  = &g_array_index (p->flight_fnc, struct vkfence, current_frame);
+	struct vkcmdbuf* cmdbuf	  = &g_array_index (p->cmdbuf, struct vkcmdbuf, current_frame);
+
+	vkWaitForFences (p->ld_used.core, 1, &ffnc->core, VK_TRUE, UINT64_MAX);
+	vkResetFences (p->ld_used.core, 1, &ffnc->core);
 	result = vkAcquireNextImageKHR (p->ld_used.core, p->swapchain.core, UINT64_MAX,
-					p->image_avail_bsem.core, NULL, &image_idx);
+					ibsem->core, NULL, &image_idx);
 	g_assert (result == VK_SUCCESS); /* assert due to runtime */
 
-	vkResetCommandBuffer (p->cmdbuf.core, 0);
-	GE_ERET (vkapp_write_to_cmdbuf (p, e, image_idx));
+	vkResetCommandBuffer (cmdbuf->core, 0);
+	GE_ERET (vkapp_write_to_cmdbuf (p, e, cmdbuf, image_idx));
 
 	/* Commands recorded, submit them. */
-	VkSemaphore wait_bsem[] = { p->image_avail_bsem.core };
+	VkSemaphore wait_bsem[] = { ibsem->core };
 	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-	VkCommandBuffer cmdbufs[] = { p->cmdbuf.core };
+	VkCommandBuffer cmdbufs[] = { cmdbuf->core };
 	
-	VkSemaphore ping_bsem[] = { p->render_finished_bsem.core };
+	VkSemaphore ping_bsem[] = { rbsem->core };
 
 	VkSubmitInfo submit_info = {
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -719,7 +749,7 @@ static int vkapp_draw_frame (struct vkapp* p, GError** e)
 		.pSignalSemaphores = ping_bsem
 	};
 	
-	result = vkQueueSubmit (p->gqueue.core, 1, &submit_info, p->flight_fnc.core);
+	result = vkQueueSubmit (p->gqueue.core, 1, &submit_info, ffnc->core);
 	g_assert (result == VK_SUCCESS);
 	
 	VkSwapchainKHR swapchains [] = { p->swapchain.core };
@@ -736,6 +766,7 @@ static int vkapp_draw_frame (struct vkapp* p, GError** e)
 
 	vkQueuePresentKHR (p->pqueue.core, &present_info);
 
+	current_frame = (current_frame + 1) % p->frames_in_flight;
 	return 0;
 }
 

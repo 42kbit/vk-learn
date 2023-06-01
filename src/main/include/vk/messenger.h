@@ -16,6 +16,9 @@ VkResult term_VkDebugUtilsMessengerEXT (VkDebugUtilsMessengerEXT     p,
 
 struct vkmessenger {
 	VkDebugUtilsMessengerEXT core;
+	
+	struct vkinstance* instance;
+	const VkAllocationCallbacks* alloc_cbs;
 };
 
 static inline VkDebugUtilsMessengerEXT vkmessenger_core (struct vkmessenger* p)
@@ -24,22 +27,18 @@ static inline VkDebugUtilsMessengerEXT vkmessenger_core (struct vkmessenger* p)
 }
 
 static inline VkResult init_vkmessenger (struct vkmessenger* dst,
-					 struct vkinstance* _instance,
+					 struct vkinstance* instance,
 					 const VkDebugUtilsMessengerCreateInfoEXT* create_info,
 					 const VkAllocationCallbacks* callbacks)
 {
-	VkInstance instance = vkinstance_core (_instance);
-	return init_VkDebugUtilsMessengerEXT (&dst->core, instance, create_info, callbacks);
+	dst->instance = instance;
+	dst->alloc_cbs = callbacks;
+	return init_VkDebugUtilsMessengerEXT (&dst->core, instance->core, create_info, callbacks);
 }
 
-static inline VkResult term_vkmessenger (struct vkmessenger* p,
-					 struct vkinstance * _instance,
-					 const VkAllocationCallbacks* cbs)
+static inline VkResult term_vkmessenger (struct vkmessenger* p)
 {
-	VkDebugUtilsMessengerEXT messenger = vkmessenger_core (p);
-	VkInstance instance = vkinstance_core (_instance);
-
-	return term_VkDebugUtilsMessengerEXT (messenger, instance, cbs);
+	return term_VkDebugUtilsMessengerEXT (p->core, p->instance->core, p->alloc_cbs);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL

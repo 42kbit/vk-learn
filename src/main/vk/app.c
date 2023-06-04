@@ -52,6 +52,8 @@ static int init_vkapp_glfw (struct vkapp* p, GError** e)
 	return 0;
 }
 
+static void glfw_window_resize_callback (GLFWwindow*, int, int);
+
 /* Creates GLFWWindow Object, that makes platform agnostic 
  * connection between application and a window.
 */
@@ -67,8 +69,8 @@ static int init_vkapp_glfw_window (struct vkapp* p, GError** e)
 		return -1;
 	}
 
-	/* Make the window's context current */
-	glfwMakeContextCurrent(p->glfw_window);
+	glfwSetWindowUserPointer (p->glfw_window, (void*)p);
+	glfwSetWindowSizeCallback (p->glfw_window, glfw_window_resize_callback);
 	return 0;
 }
 
@@ -570,6 +572,7 @@ int init_vkapp (struct vkapp** dst, GError** e)
 	GE_ZEROTYPE (p);
 
 	p->frames_in_flight = 2;
+	p->fb_resized = 0;
 
 	GE_ERET (init_vkapp_glfw	 (p, e));
 	GE_ERET (init_vkapp_glfw_window  (p, e));
@@ -602,6 +605,8 @@ static inline void __term_vkmessenger_if_debug (struct vkapp* p)
 void term_vkapp (struct vkapp* p, GError** e)
 {
 	VkResult result;
+
+	vkDeviceWaitIdle (p->ld_used.core);
 	
 	__term_vkmessenger_if_debug (p);
 	
@@ -638,6 +643,39 @@ void term_vkapp (struct vkapp* p, GError** e)
 	term_vkinstance (&p->instance);
 	glfwDestroyWindow (p->glfw_window);
 	glfwTerminate();
+}
+
+static void glfw_window_wait_till_active (GLFWwindow* p)
+{
+	int width = 0, height = 0;
+	glfwGetFramebufferSize (p, &width, &height);
+	while (width == 0 || height == 0) {
+		glfwGetFramebufferSize (p, &width, &height);
+		glfwWaitEvents ();
+	}
+}
+
+static int vkapp_recreate_swapchain (struct vkapp* p, GError** e)
+{
+	glfw_window_wait_till_active (p->glfw_window);
+	vkDeviceWaitIdle (p->ld_used.core);
+
+	for (guint i = 0; i < p->framebuffers->len; i++) {
+		vkDestroyFramebuffer (p->ld_used.core, g_array_index (p->framebuffers, VkFramebuffer, i), NULL);
+	}
+	term_vkswapchain_khr (&p->swapchain);
+	
+	GE_ERET (init_vkapp_swapchain   (p, e));
+	GE_ERET (init_vkapp_framebuffer (p, e));
+
+	return 0;
+}
+
+static void glfw_window_resize_callback (GLFWwindow* window, int width, int height)
+{
+	struct vkapp* p;
+	p = (struct vkapp*)glfwGetWindowUserPointer (window);
+	p->fb_resized = 1;
 }
 
 static guint32 current_frame = 0;
@@ -722,10 +760,16 @@ static int vkapp_draw_frame (struct vkapp* p, GError** e)
 	struct vkcmdbuf* cmdbuf	  = &g_array_index (p->cmdbuf, struct vkcmdbuf, current_frame);
 
 	vkWaitForFences (p->ld_used.core, 1, &ffnc->core, VK_TRUE, UINT64_MAX);
-	vkResetFences (p->ld_used.core, 1, &ffnc->core);
 	result = vkAcquireNextImageKHR (p->ld_used.core, p->swapchain.core, UINT64_MAX,
 					ibsem->core, NULL, &image_idx);
-	g_assert (result == VK_SUCCESS); /* assert due to runtime */
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		p->fb_resized = 0;
+		GE_ERET (vkapp_recreate_swapchain (p, e));
+		return 0;
+	}
+
+	vkResetFences (p->ld_used.core, 1, &ffnc->core);
 
 	vkResetCommandBuffer (cmdbuf->core, 0);
 	GE_ERET (vkapp_write_to_cmdbuf (p, e, cmdbuf, image_idx));
@@ -764,7 +808,15 @@ static int vkapp_draw_frame (struct vkapp* p, GError** e)
 		.pResults = NULL
 	};
 
-	vkQueuePresentKHR (p->pqueue.core, &present_info);
+	result = vkQueuePresentKHR (p->pqueue.core, &present_info);
+	if (result == VK_SUBOPTIMAL_KHR ||
+	    result == VK_ERROR_OUT_OF_DATE_KHR ||
+	    p->fb_resized)
+	{
+		p->fb_resized = 0;
+		GE_ERET (vkapp_recreate_swapchain (p, e));
+		return 0;
+	}
 
 	current_frame = (current_frame + 1) % p->frames_in_flight;
 	return 0;
@@ -779,7 +831,6 @@ int vkapp_enter_mainloop (struct vkapp* p, GError** e) {
 
 		GE_ERET (vkapp_draw_frame (p, e));
 	}
-	vkDeviceWaitIdle (p->ld_used.core);
 
 	return 0;
 }

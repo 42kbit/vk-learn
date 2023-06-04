@@ -233,7 +233,6 @@ free_exit:;
 
 int term_vkswapchain_khr (struct vkswapchain_khr* p)
 {
-	vkDestroySwapchainKHR (p->ldev->core, p->core, NULL);
 	term_vksurface_caps_khr (&p->surface_caps);
 
 	//__term_swapchain_images (p);
@@ -241,6 +240,8 @@ int term_vkswapchain_khr (struct vkswapchain_khr* p)
 
 	g_array_free (p->images, TRUE);
 	g_array_free (p->image_views, TRUE);
+
+	vkDestroySwapchainKHR (p->ldev->core, p->core, NULL);
 
 	return 0;
 }

@@ -57,6 +57,8 @@ struct vkapp {
 	GArray* rendered_bsem;  /* struct vksemaphore */
 	GArray* flight_fnc;     /* struct vkfence     */
 	
+	int fb_resized;
+	
 
 #ifdef __VK_VLAYERS_NEEDED
 	GArray*			vlayers;  /* struct vkvlayer* */

@@ -300,10 +300,19 @@ static int init_vkapp_graphics_pipeline (struct vkapp* p, GError** e)
 {
 	struct vkshader_module vert, frag;
 	VkResult result;
-	int ecode = 0;
+	int ecode = 0, retval;
 
-	init_vkshader_module_from_file (&vert, &p->ld_used, "shaders/basic_vert.spv");
-	init_vkshader_module_from_file (&frag, &p->ld_used, "shaders/basic_frag.spv");
+	retval = init_vkshader_module_from_file (&vert, &p->ld_used, "shaders/basic_vert.spv");
+	if (retval < 0) {
+		g_set_error (e, EVKDEFAULT, EINVAL, "Invalid or Missing shaders/basic_vert.spv");
+		return retval;
+	}
+
+	retval = init_vkshader_module_from_file (&frag, &p->ld_used, "shaders/basic_frag.spv");
+	if (retval < 0) {
+		g_set_error (e, EVKDEFAULT, EINVAL, "Invalid or Missing shaders/basic_frag.spv");
+		return retval;
+	}
 	
 	VkPipelineShaderStageCreateInfo vert_stage_create_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
